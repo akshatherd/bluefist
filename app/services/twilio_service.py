@@ -1,15 +1,100 @@
+import logging
+from typing import Optional
+
 import httpx
+
 from app.core.config import settings
 
-def send_whatsapp(message: str):
-    url = f"https://api.twilio.com/2010-04-01/Accounts/{settings.TWILIO_ACCOUNT_SID}/Messages.json"
+logging.basicConfig(level=logging.INFO)
 
-    httpx.post(
-        url,
-        data={
-            "From": settings.TWILIO_WHATSAPP_NUMBER,
-            "To": settings.USER_WHATSAPP_NUMBER,
-            "Body": message
-        },
-        auth=(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
-    )
+TWILIO_API_URL = (
+    f"https://api.twilio.com/2010-04-01/Accounts/"
+    f"{settings.TWILIO_ACCOUNT_SID}/Messages.json"
+)
+
+
+def send_whatsapp(message: str) -> bool:
+    """
+    Sends a WhatsApp notification using Twilio.
+
+    Returns:
+        True  -> Message sent successfully
+        False -> Failed
+    """
+
+    try:
+
+        response = httpx.post(
+            TWILIO_API_URL,
+            data={
+                "From": settings.TWILIO_WHATSAPP_NUMBER,
+                "To": settings.USER_WHATSAPP_NUMBER,
+                "Body": message,
+            },
+            auth=(
+                settings.TWILIO_ACCOUNT_SID,
+                settings.TWILIO_AUTH_TOKEN,
+            ),
+            timeout=20,
+        )
+
+        response.raise_for_status()
+
+        logging.info("✅ WhatsApp notification sent.")
+
+        return True
+
+    except Exception as e:
+
+        logging.exception(f"Twilio Error: {e}")
+
+        return False
+
+
+def send_incident_notification(
+    incident_id: str,
+    repository: str,
+    file_name: str,
+    status: str,
+    pull_request_url: Optional[str] = None,
+    branch_name: Optional[str] = None,
+):
+    """
+    Sends a formatted BLUEFIST incident report to WhatsApp.
+    """
+
+    message = f"""
+🚨 BLUEFIST Autonomous Incident Report
+
+🆔 Incident
+{incident_id}
+
+📦 Repository
+{repository}
+
+📄 File
+{file_name}
+
+✅ Status
+{status}
+"""
+
+    if branch_name:
+        message += f"\n🌿 Branch\n{branch_name}\n"
+
+    if pull_request_url:
+        message += f"\n🔗 Pull Request\n{pull_request_url}\n"
+
+    message += """
+
+🤖 Workflow
+
+✔ AST Generated
+✔ AI Patch Synthesized
+✔ Sandbox Validation Completed
+✔ GitHub PR Created
+
+BLUEFIST Autonomous Site Reliability Engine
+"""
+
+    return send_whatsapp(message.strip())
