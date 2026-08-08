@@ -6,12 +6,11 @@ import {
   LayoutDashboard, Cpu, Play, AlertTriangle, Search, BrainCircuit,
   Box, GitPullRequest, RotateCcw, Flame, Wifi, WifiOff, Eye,
   CheckCircle2, XCircle, Clock, Plus, Trash2, Globe, Radio,
-  ChevronDown, ChevronUp, Zap, Server, TrendingUp, Shield
+  ChevronDown, ChevronUp, Zap, Server, TrendingUp, Shield, CreditCard
 } from "lucide-react";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CONSTANTS — single source of truth for backend URLs
-// Change these if your backend runs on a different host/port.
+// CONSTANTS
 // ─────────────────────────────────────────────────────────────────────────────
 const API_BASE  = "http://localhost:8000";
 const WS_BASE   = "ws://localhost:8000";
@@ -19,7 +18,6 @@ const WS_BASE   = "ws://localhost:8000";
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPE DEFINITIONS
 // ─────────────────────────────────────────────────────────────────────────────
-
 interface TelemetryEvent {
   ts: string;
   event: string;
@@ -72,7 +70,6 @@ interface TargetHealth {
 // ─────────────────────────────────────────────────────────────────────────────
 // SMALL REUSABLE COMPONENTS
 // ─────────────────────────────────────────────────────────────────────────────
-
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { color: string; label: string }> = {
     healthy:     { color: "text-[#10B981] border-[#10B981]/40 bg-[#10B981]/10", label: "HEALTHY"     },
@@ -110,7 +107,6 @@ function PulsingDot({ color = "#10B981" }: { color?: string }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // EMERGENCY APPROVAL MODAL
 // ─────────────────────────────────────────────────────────────────────────────
-
 interface ApprovalModalProps {
   approval: PendingApproval & Partial<TelemetryEvent>;
   onDecide: (id: string, decision: "approve" | "reject", note: string) => void;
@@ -124,15 +120,12 @@ function ApprovalModal({ approval, onDecide, isSubmitting }: ApprovalModalProps)
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm">
-      {/* Animated border glow */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#FF5F56] to-transparent animate-pulse" />
         <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#FF5F56] to-transparent animate-pulse" />
       </div>
 
       <div className="relative w-full max-w-3xl mx-4 bg-[#0A0A0A] border border-[#FF5F56]/40 rounded-2xl shadow-[0_0_60px_rgba(255,95,86,0.2)] overflow-hidden">
-
-        {/* Header */}
         <div className="flex items-center gap-3 px-6 py-4 bg-[#FF5F56]/10 border-b border-[#FF5F56]/20">
           <div className="p-2 rounded-lg bg-[#FF5F56]/20">
             <ShieldAlert className="w-5 h-5 text-[#FF5F56] animate-pulse" />
@@ -154,8 +147,6 @@ function ApprovalModal({ approval, onDecide, isSubmitting }: ApprovalModalProps)
         </div>
 
         <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-
-          {/* Anomaly info */}
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-white/5 rounded-xl p-3 border border-white/10">
               <p className="text-white/40 text-[10px] font-mono uppercase mb-1">File</p>
@@ -175,7 +166,6 @@ function ApprovalModal({ approval, onDecide, isSubmitting }: ApprovalModalProps)
             </div>
           </div>
 
-          {/* Patch diff toggle */}
           <div className="border border-white/10 rounded-xl overflow-hidden">
             <button
               onClick={() => setShowDiff(!showDiff)}
@@ -185,9 +175,7 @@ function ApprovalModal({ approval, onDecide, isSubmitting }: ApprovalModalProps)
                 <Zap className="w-4 h-4 text-[#8B5CF6]" />
                 AI-Generated Patch Preview
               </div>
-              {showDiff
-                ? <ChevronUp className="w-4 h-4 text-white/50" />
-                : <ChevronDown className="w-4 h-4 text-white/50" />}
+              {showDiff ? <ChevronUp className="w-4 h-4 text-white/50" /> : <ChevronDown className="w-4 h-4 text-white/50" />}
             </button>
             {showDiff && (
               <div className="p-4 bg-[#050505] font-mono text-[11px] leading-relaxed text-[#10B981] overflow-x-auto max-h-48 overflow-y-auto">
@@ -198,7 +186,6 @@ function ApprovalModal({ approval, onDecide, isSubmitting }: ApprovalModalProps)
             )}
           </div>
 
-          {/* TDD logs toggle */}
           <div className="border border-white/10 rounded-xl overflow-hidden">
             <button
               onClick={() => setShowLogs(!showLogs)}
@@ -207,12 +194,10 @@ function ApprovalModal({ approval, onDecide, isSubmitting }: ApprovalModalProps)
               <div className="flex items-center gap-2">
                 <Terminal className="w-4 h-4 text-[#00F0FF]" />
                 Sandbox Verification Logs (
-                  {(approval.logs_tail ?? approval.logs ?? []).length} lines
+                {(approval.logs_tail ?? approval.logs ?? []).length} lines
                 )
               </div>
-              {showLogs
-                ? <ChevronUp className="w-4 h-4 text-white/50" />
-                : <ChevronDown className="w-4 h-4 text-white/50" />}
+              {showLogs ? <ChevronUp className="w-4 h-4 text-white/50" /> : <ChevronDown className="w-4 h-4 text-white/50" />}
             </button>
             {showLogs && (
               <div className="p-4 bg-[#050505] font-mono text-[11px] leading-relaxed overflow-y-auto max-h-40">
@@ -233,7 +218,6 @@ function ApprovalModal({ approval, onDecide, isSubmitting }: ApprovalModalProps)
             )}
           </div>
 
-          {/* Reviewer note */}
           <div>
             <label className="text-white/50 text-xs font-mono uppercase mb-2 block">
               Reviewer Note (optional)
@@ -247,7 +231,6 @@ function ApprovalModal({ approval, onDecide, isSubmitting }: ApprovalModalProps)
           </div>
         </div>
 
-        {/* Action buttons */}
         <div className="flex gap-3 px-6 py-4 border-t border-white/10 bg-black/20">
           <button
             onClick={() => onDecide(approval.approval_id, "reject", note)}
@@ -261,9 +244,7 @@ function ApprovalModal({ approval, onDecide, isSubmitting }: ApprovalModalProps)
             disabled={isSubmitting}
             className="flex-1 flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-[#10B981] text-black font-bold text-sm hover:bg-[#059669] transition-all disabled:opacity-40 shadow-[0_0_20px_rgba(16,185,129,0.4)]"
           >
-            {isSubmitting
-              ? <RotateCcw className="w-4 h-4 animate-spin" />
-              : <CheckCircle2 className="w-4 h-4" />}
+            {isSubmitting ? <RotateCcw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
             Authorize Patch
           </button>
         </div>
@@ -275,7 +256,6 @@ function ApprovalModal({ approval, onDecide, isSubmitting }: ApprovalModalProps)
 // ─────────────────────────────────────────────────────────────────────────────
 // GLOBAL TELEMETRY TAB
 // ─────────────────────────────────────────────────────────────────────────────
-
 interface TelemetryTabProps {
   events: TelemetryEvent[];
   summary: Record<string, TargetHealth>;
@@ -293,12 +273,9 @@ function TelemetryTab({ events, summary, wsConnected }: TelemetryTabProps) {
   }, [events]);
 
   const eventColor = (type: string) => {
-    if (["heartbeat", "deploy_complete", "manual_fix_deployed"].includes(type))
-      return "text-[#10B981]";
-    if (["anomaly", "tdd_fatal", "deploy_failed", "monitor_error"].includes(type))
-      return "text-[#FF5F56]";
-    if (["approval_queued", "approval_required"].includes(type))
-      return "text-[#8B5CF6]";
+    if (["heartbeat", "deploy_complete", "manual_fix_deployed"].includes(type)) return "text-[#10B981]";
+    if (["anomaly", "tdd_fatal", "deploy_failed", "monitor_error"].includes(type)) return "text-[#FF5F56]";
+    if (["approval_queued", "approval_required"].includes(type)) return "text-[#8B5CF6]";
     if (type === "approval_rejected") return "text-[#FFBD2E]";
     if (type === "deploy_started")    return "text-[#00F0FF]";
     return "text-white/60";
@@ -322,8 +299,6 @@ function TelemetryTab({ events, summary, wsConnected }: TelemetryTabProps) {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 animate-fade-in-up">
-
-      {/* WS banner */}
       <div className={`flex items-center gap-3 px-4 py-2 rounded-xl border text-sm font-medium ${
         wsConnected
           ? "bg-[#10B981]/10 border-[#10B981]/30 text-[#10B981]"
@@ -335,7 +310,6 @@ function TelemetryTab({ events, summary, wsConnected }: TelemetryTabProps) {
           : "Dashboard WebSocket disconnected — events will not update in real time"}
       </div>
 
-      {/* Health cards */}
       <div>
         <h3 className="text-white/50 text-xs font-mono uppercase mb-3 flex items-center gap-2">
           <TrendingUp className="w-3 h-3" /> Target Health Summary
@@ -376,15 +350,11 @@ function TelemetryTab({ events, summary, wsConnected }: TelemetryTabProps) {
         )}
       </div>
 
-      {/* Live event feed */}
       <div>
         <h3 className="text-white/50 text-xs font-mono uppercase mb-3 flex items-center gap-2">
           <Radio className="w-3 h-3 animate-pulse text-[#10B981]" /> Live Event Feed
         </h3>
-        <div
-          ref={feedRef}
-          className="bg-[#050505] border border-white/10 rounded-xl h-[420px] overflow-y-auto p-4 space-y-1 font-mono text-xs"
-        >
+        <div ref={feedRef} className="bg-[#050505] border border-white/10 rounded-xl h-[420px] overflow-y-auto p-4 space-y-1 font-mono text-xs">
           {events.length === 0 ? (
             <div className="h-full flex items-center justify-center text-white/20">
               <div className="text-center">
@@ -394,10 +364,7 @@ function TelemetryTab({ events, summary, wsConnected }: TelemetryTabProps) {
             </div>
           ) : (
             events.map((ev, i) => (
-              <div
-                key={i}
-                className={`flex items-start gap-3 py-1 border-b border-white/5 ${eventColor(ev.event)}`}
-              >
+              <div key={i} className={`flex items-start gap-3 py-1 border-b border-white/5 ${eventColor(ev.event)}`}>
                 <span className="shrink-0 mt-0.5">{eventIcon(ev.event)}</span>
                 <span className="text-white/30 shrink-0 tabular-nums">
                   {new Date(ev.ts).toLocaleTimeString()}
@@ -424,7 +391,6 @@ function TelemetryTab({ events, summary, wsConnected }: TelemetryTabProps) {
 // ─────────────────────────────────────────────────────────────────────────────
 // TARGET REPOSITORIES TAB
 // ─────────────────────────────────────────────────────────────────────────────
-
 interface RepoTabProps {
   targets: MonitorTarget[];
   onRegister: (t: MonitorTarget) => Promise<void>;
@@ -434,11 +400,7 @@ interface RepoTabProps {
 }
 
 function RepoTab({
-  targets,
-  onRegister,
-  onDeregister,
-  isRegistering,
-  registerError,
+  targets, onRegister, onDeregister, isRegistering, registerError,
 }: RepoTabProps) {
   const [form, setForm] = useState<MonitorTarget>({
     target_id:      "",
@@ -446,7 +408,6 @@ function RepoTab({
     endpoint_url:   "",
     check_interval: 60,
   });
-
   const [fieldErrors, setFieldErrors] = useState<Partial<MonitorTarget>>({});
 
   const validate = (): boolean => {
@@ -468,14 +429,11 @@ function RepoTab({
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in-up">
-
-      {/* Register form */}
       <div className="bg-[#0A0A0A] border border-white/10 rounded-2xl p-6 space-y-4">
         <h3 className="text-white font-bold text-sm flex items-center gap-2">
           <Plus className="w-4 h-4 text-[#10B981]" /> Register New Monitor Target
         </h3>
 
-        {/* API error banner */}
         {registerError && (
           <div className="flex items-center gap-2 px-4 py-3 bg-[#FF5F56]/10 border border-[#FF5F56]/30 rounded-xl text-[#FF5F56] text-sm font-mono">
             <XCircle className="w-4 h-4 shrink-0" />
@@ -484,94 +442,57 @@ function RepoTab({
         )}
 
         <div className="grid grid-cols-2 gap-4">
-
-          {/* Target ID */}
           <div>
-            <label className="text-white/40 text-xs font-mono uppercase mb-1.5 block">
-              Target ID (slug)
-            </label>
+            <label className="text-white/40 text-xs font-mono uppercase mb-1.5 block">Target ID (slug)</label>
             <input
               value={form.target_id}
               onChange={(e) => setForm({ ...form, target_id: e.target.value })}
               placeholder="checkout-service"
               className={`w-full bg-white/5 border rounded-xl px-4 py-2.5 text-white font-mono text-sm focus:outline-none transition-all ${
-                fieldErrors.target_id
-                  ? "border-[#FF5F56] focus:border-[#FF5F56]"
-                  : "border-white/10 focus:border-[#10B981]"
+                fieldErrors.target_id ? "border-[#FF5F56] focus:border-[#FF5F56]" : "border-white/10 focus:border-[#10B981]"
               }`}
             />
-            {fieldErrors.target_id && (
-              <p className="text-[#FF5F56] text-[10px] font-mono mt-1">
-                {fieldErrors.target_id}
-              </p>
-            )}
+            {fieldErrors.target_id && <p className="text-[#FF5F56] text-[10px] font-mono mt-1">{fieldErrors.target_id}</p>}
           </div>
 
-          {/* Interval */}
           <div>
-            <label className="text-white/40 text-xs font-mono uppercase mb-1.5 block">
-              Check Interval (seconds)
-            </label>
+            <label className="text-white/40 text-xs font-mono uppercase mb-1.5 block">Check Interval (seconds)</label>
             <input
               type="number"
               value={form.check_interval}
-              onChange={(e) =>
-                setForm({ ...form, check_interval: Number(e.target.value) })
-              }
+              onChange={(e) => setForm({ ...form, check_interval: Number(e.target.value) })}
               min={15}
               className={`w-full bg-white/5 border rounded-xl px-4 py-2.5 text-white font-mono text-sm focus:outline-none transition-all ${
-                fieldErrors.check_interval
-                  ? "border-[#FF5F56] focus:border-[#FF5F56]"
-                  : "border-white/10 focus:border-[#10B981]"
+                fieldErrors.check_interval ? "border-[#FF5F56] focus:border-[#FF5F56]" : "border-white/10 focus:border-[#10B981]"
               }`}
             />
-            {fieldErrors.check_interval && (
-              <p className="text-[#FF5F56] text-[10px] font-mono mt-1">Min 15 s</p>
-            )}
+            {fieldErrors.check_interval && <p className="text-[#FF5F56] text-[10px] font-mono mt-1">Min 15 s</p>}
           </div>
 
-          {/* Repo URL */}
           <div className="col-span-2">
-            <label className="text-white/40 text-xs font-mono uppercase mb-1.5 block">
-              GitHub Repo URL
-            </label>
+            <label className="text-white/40 text-xs font-mono uppercase mb-1.5 block">GitHub Repo URL</label>
             <input
               value={form.repo_url}
               onChange={(e) => setForm({ ...form, repo_url: e.target.value })}
               placeholder="https://github.com/akshat/checkout-service"
               className={`w-full bg-white/5 border rounded-xl px-4 py-2.5 text-white font-mono text-sm focus:outline-none transition-all ${
-                fieldErrors.repo_url
-                  ? "border-[#FF5F56] focus:border-[#FF5F56]"
-                  : "border-white/10 focus:border-[#10B981]"
+                fieldErrors.repo_url ? "border-[#FF5F56] focus:border-[#FF5F56]" : "border-white/10 focus:border-[#10B981]"
               }`}
             />
-            {fieldErrors.repo_url && (
-              <p className="text-[#FF5F56] text-[10px] font-mono mt-1">
-                {fieldErrors.repo_url}
-              </p>
-            )}
+            {fieldErrors.repo_url && <p className="text-[#FF5F56] text-[10px] font-mono mt-1">{fieldErrors.repo_url}</p>}
           </div>
 
-          {/* Endpoint URL */}
           <div className="col-span-2">
-            <label className="text-white/40 text-xs font-mono uppercase mb-1.5 block">
-              Live Endpoint URL
-            </label>
+            <label className="text-white/40 text-xs font-mono uppercase mb-1.5 block">Live Endpoint URL</label>
             <input
               value={form.endpoint_url}
               onChange={(e) => setForm({ ...form, endpoint_url: e.target.value })}
               placeholder="https://api.yourapp.com/health"
               className={`w-full bg-white/5 border rounded-xl px-4 py-2.5 text-white font-mono text-sm focus:outline-none transition-all ${
-                fieldErrors.endpoint_url
-                  ? "border-[#FF5F56] focus:border-[#FF5F56]"
-                  : "border-white/10 focus:border-[#10B981]"
+                fieldErrors.endpoint_url ? "border-[#FF5F56] focus:border-[#FF5F56]" : "border-white/10 focus:border-[#10B981]"
               }`}
             />
-            {fieldErrors.endpoint_url && (
-              <p className="text-[#FF5F56] text-[10px] font-mono mt-1">
-                {fieldErrors.endpoint_url}
-              </p>
-            )}
+            {fieldErrors.endpoint_url && <p className="text-[#FF5F56] text-[10px] font-mono mt-1">{fieldErrors.endpoint_url}</p>}
           </div>
         </div>
 
@@ -580,14 +501,11 @@ function RepoTab({
           disabled={isRegistering}
           className="flex items-center gap-2 bg-[#10B981] text-black px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-[#059669] transition-all disabled:opacity-40 shadow-[0_0_15px_rgba(16,185,129,0.3)]"
         >
-          {isRegistering
-            ? <RotateCcw className="w-4 h-4 animate-spin" />
-            : <Plus className="w-4 h-4" />}
+          {isRegistering ? <RotateCcw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
           {isRegistering ? "Registering..." : "Register & Start Monitoring"}
         </button>
       </div>
 
-      {/* Active targets list */}
       <div>
         <h3 className="text-white/50 text-xs font-mono uppercase mb-3 flex items-center gap-2">
           <Server className="w-3 h-3" /> Active Monitor Registry ({targets.length})
@@ -599,24 +517,15 @@ function RepoTab({
         ) : (
           <div className="space-y-3">
             {targets.map((t) => (
-              <div
-                key={t.target_id}
-                className="bg-[#0A0A0A] border border-white/10 rounded-xl p-4 flex items-center justify-between gap-4"
-              >
+              <div key={t.target_id} className="bg-[#0A0A0A] border border-white/10 rounded-xl p-4 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-[#10B981]/10 rounded-lg">
                     <Shield className="w-4 h-4 text-[#10B981]" />
                   </div>
                   <div>
-                    <p className="text-white font-bold text-sm font-mono">
-                      {t.target_id}
-                    </p>
-                    <p className="text-white/40 text-xs font-mono truncate max-w-sm">
-                      {t.endpoint_url}
-                    </p>
-                    <p className="text-white/30 text-xs font-mono truncate max-w-sm">
-                      {t.repo_url}
-                    </p>
+                    <p className="text-white font-bold text-sm font-mono">{t.target_id}</p>
+                    <p className="text-white/40 text-xs font-mono truncate max-w-sm">{t.endpoint_url}</p>
+                    <p className="text-white/30 text-xs font-mono truncate max-w-sm">{t.repo_url}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
@@ -645,14 +554,199 @@ function RepoTab({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// PRICING TAB COMPONENT
+// ─────────────────────────────────────────────────────────────────────────────
+function PricingTab() {
+  const [isYearly, setIsYearly] = useState(true);
+
+  const plans = [
+    {
+      name: "Developer",
+      tagline: "For individual builders and open-source maintainers.",
+      monthlyPrice: 0,
+      yearlyPrice: 0,
+      badge: "Free Forever",
+      highlight: false,
+      features: [
+        "Up to 50 AI-TDD Fixes / mo",
+        "Single GitHub Repository",
+        "Local Circuit Breaker Engine (Ollama)",
+        "Basic AST Context Parser",
+        "Community Discord Support",
+      ],
+      cta: "Get Started Free",
+    },
+    {
+      name: "Team & Startup",
+      tagline: "For growing dev teams requiring autonomous incident remediation.",
+      monthlyPrice: 3499,
+      yearlyPrice: 2799,
+      badge: "Most Popular",
+      highlight: true,
+      features: [
+        "Up to 1,000 AI-TDD Fixes / mo",
+        "Up to 10 Repositories",
+        "Cross-File AST Call-Graph Tracing",
+        "Automated PyTest Suite Synthesis",
+        "GitHub Actions & Webhook Integration",
+        "Twilio & WhatsApp Incident Alerts",
+        "Priority Support (4-hour SLA)",
+      ],
+      cta: "Start 14-Day Free Trial",
+    },
+    {
+      name: "Enterprise SRE",
+      tagline: "For mission-critical infrastructure requiring zero-trust security.",
+      monthlyPrice: 14999,
+      yearlyPrice: 11999,
+      badge: "Zero-Trust Ready",
+      highlight: false,
+      features: [
+        "Unlimited AI-TDD Hotfixes",
+        "Unlimited Repositories & Microservices",
+        "Skyflow Zero-Trust PII / Secret Vault",
+        "Custom LLM Routing (Gemini, Claude, Self-Hosted)",
+        "Role-Based Access Control (RBAC) & Audit Logs",
+        "Dedicated SRE Account Manager",
+        "99.99% Uptime Guarantee (SLA)",
+      ],
+      cta: "Contact Enterprise Sales",
+    },
+  ];
+
+  return (
+    <div className="max-w-7xl mx-auto space-y-12 animate-fade-in-up pb-16">
+      <div className="text-center max-w-3xl mx-auto pt-8">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#10B981]/10 border border-[#10B981]/30 text-[#10B981] text-xs font-semibold tracking-wide uppercase mb-4 shadow-[0_0_15px_rgba(16,185,129,0.15)]">
+          🛡️ Enterprise-Grade Reliability
+        </div>
+        <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+          Predictable Pricing for Autonomous SRE
+        </h1>
+        <p className="mt-4 text-white/50 text-lg">
+          Stop burning engineer hours on manual hotfixes. Choose a plan that scales with your codebase.
+        </p>
+
+        <div className="mt-8 flex justify-center items-center gap-4">
+          <span className={`text-sm font-medium ${!isYearly ? "text-white" : "text-white/40"}`}>
+            Monthly Billing
+          </span>
+          <button
+            onClick={() => setIsYearly(!isYearly)}
+            className="relative w-14 h-8 rounded-full bg-[#0A0A0A] p-1 transition-colors duration-200 border border-white/10 focus:outline-none"
+          >
+            <div
+              className={`w-6 h-6 rounded-full bg-[#10B981] shadow-md transform transition-transform duration-200 ${
+                isYearly ? "translate-x-6" : "translate-x-0"
+              }`}
+            />
+          </button>
+          <span className={`text-sm font-medium flex items-center gap-2 ${isYearly ? "text-white" : "text-white/40"}`}>
+            Yearly Billing
+            <span className="bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/30 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
+              Save 20%
+            </span>
+          </span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
+        {plans.map((plan, index) => {
+          const price = isYearly ? plan.yearlyPrice : plan.monthlyPrice;
+
+          return (
+            <div
+              key={index}
+              className={`relative flex flex-col justify-between rounded-2xl p-8 transition-all duration-300 ${
+                plan.highlight
+                  ? "bg-[#0A0A0A]/90 border-2 border-[#10B981]/60 shadow-[0_0_35px_rgba(16,185,129,0.15)] scale-105 z-10"
+                  : "bg-[#0A0A0A]/40 border border-white/10 hover:border-white/20 hover:bg-[#0A0A0A]/60"
+              }`}
+            >
+              {plan.badge && (
+                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase shadow-md ${
+                      plan.highlight
+                        ? "bg-[#10B981] text-black"
+                        : "bg-[#050505] border border-white/10 text-white/80"
+                    }`}
+                  >
+                    {plan.badge}
+                  </span>
+                </div>
+              )}
+
+              <div>
+                <h3 className="text-2xl font-bold text-white mb-2">{plan.name}</h3>
+                <p className="text-white/50 text-sm min-h-[40px]">{plan.tagline}</p>
+
+                <div className="my-6 flex items-baseline gap-1">
+                  <span className="text-4xl font-extrabold text-white">
+                    ₹{price.toLocaleString("en-IN")}
+                  </span>
+                  <span className="text-white/40 text-sm font-medium">
+                    {price === 0 ? "" : "/ month"}
+                  </span>
+                </div>
+
+                <hr className="border-white/10 my-6" />
+
+                <ul className="space-y-3.5 mb-8">
+                  {plan.features.map((feature, idx) => (
+                    <li key={idx} className="flex items-start gap-3 text-sm text-white/70">
+                      <svg
+                        className="w-5 h-5 text-[#10B981] shrink-0 mt-0.5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <button
+                className={`w-full py-3.5 px-6 rounded-xl font-bold text-sm tracking-wide transition-all duration-200 ${
+                  plan.highlight
+                    ? "bg-[#10B981] hover:bg-[#059669] text-black shadow-[0_0_20px_rgba(16,185,129,0.4)]"
+                    : "bg-[#050505] hover:bg-white/5 text-white border border-white/10"
+                }`}
+              >
+                {plan.cta}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="max-w-4xl mx-auto mt-16 text-center border border-white/10 rounded-2xl p-6 bg-[#0A0A0A]/40 backdrop-blur-sm">
+        <div className="flex flex-wrap justify-around items-center gap-6 text-white/50 text-xs font-semibold uppercase tracking-wider">
+          <div className="flex items-center gap-2">
+            <span className="text-[#10B981] text-lg">⚡</span> Instant Setup in 2 Minutes
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[#10B981] text-lg">🛡️</span> Circuit Breaker Failover Included
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[#10B981] text-lg">💳</span> Cancel or Upgrade Anytime
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // MAIN APPLICATION
 // ─────────────────────────────────────────────────────────────────────────────
-
 export default function BluefistEnterprise() {
 
   // ── Tab state ──────────────────────────────────────────────────────────────
-  const [activeTab, setActiveTab] =
-    useState<"engine" | "dashboard" | "repos">("engine");
+  const [activeTab, setActiveTab] = useState<"engine" | "dashboard" | "repos" | "pricing">("engine");
 
   // ── Ghost Terminal ─────────────────────────────────────────────────────────
   const [repoUrl, setRepoUrl]               = useState("https://github.com/akshat/checkout-service");
@@ -699,7 +793,6 @@ export default function BluefistEnterprise() {
   // ─────────────────────────────────────────────────────────────────────────
   // DASHBOARD WEBSOCKET
   // ─────────────────────────────────────────────────────────────────────────
-
   const connectDashboardWs = useCallback(() => {
     if (dashWsRef.current?.readyState === WebSocket.OPEN) return;
 
@@ -729,16 +822,16 @@ export default function BluefistEnterprise() {
         }
 
         const event: TelemetryEvent = {
-          ts:           msg.ts ?? new Date().toISOString(),
-          event:        msg.type,
-          target:       msg.target ?? "—",
-          ping:         msg.ping,
-          approval_id:  msg.approval_id,
-          file_path:    msg.file_path,
-          full_patch:   msg.full_patch,
+          ts:            msg.ts ?? new Date().toISOString(),
+          event:         msg.type,
+          target:        msg.target ?? "—",
+          ping:          msg.ping,
+          approval_id:   msg.approval_id,
+          file_path:     msg.file_path,
+          full_patch:    msg.full_patch,
           original_code: msg.original_code,
-          logs_tail:    msg.logs_tail,
-          pr_url:       msg.pr_url,
+          logs_tail:     msg.logs_tail,
+          pr_url:        msg.pr_url,
         };
         setTelemetryEvents((prev) => [...prev, event].slice(-200));
 
@@ -828,7 +921,6 @@ export default function BluefistEnterprise() {
   // ─────────────────────────────────────────────────────────────────────────
   // GHOST TERMINAL ENGINE
   // ─────────────────────────────────────────────────────────────────────────
-
   const triggerEngine = () => {
     if (!repoUrl) return;
     setIsEngineActive(true);
@@ -894,7 +986,6 @@ export default function BluefistEnterprise() {
   // ─────────────────────────────────────────────────────────────────────────
   // APPROVAL GATE
   // ─────────────────────────────────────────────────────────────────────────
-
   const handleApprovalDecision = async (
     approvalId: string,
     decision: "approve" | "reject",
@@ -931,7 +1022,6 @@ export default function BluefistEnterprise() {
   // ─────────────────────────────────────────────────────────────────────────
   // TARGET REGISTRY ACTIONS
   // ─────────────────────────────────────────────────────────────────────────
-
   const handleRegisterTarget = async (target: MonitorTarget) => {
     setIsRegistering(true);
     setRegisterError(null);
@@ -947,9 +1037,7 @@ export default function BluefistEnterprise() {
       }
       const data = await res.json();
       setTargets((prev) => [...prev, target]);
-      setApprovalToast(
-        `✅ "${data.target_id}" registered — monitoring started.`
-      );
+      setApprovalToast(`✅ "${data.target_id}" registered — monitoring started.`);
     } catch (err) {
       const msg = `Registration failed: ${err}`;
       setRegisterError(msg);
@@ -985,7 +1073,6 @@ export default function BluefistEnterprise() {
   // ─────────────────────────────────────────────────────────────────────────
   // RENDER
   // ─────────────────────────────────────────────────────────────────────────
-
   return (
     <div className="flex h-screen bg-[#050505] text-[#A1A1AA] font-sans overflow-hidden selection:bg-[#10B981] selection:text-black">
 
@@ -999,7 +1086,7 @@ export default function BluefistEnterprise() {
       )}
 
       {/* ─────────────── SIDEBAR ─────────────── */}
-      <aside className="w-64 border-r border-white/10 bg-[#0A0A0A] flex flex-col justify-between z-20 shadow-2xl">
+      <aside className="w-64 border-r border-white/10 bg-[#0A0A0A] flex flex-col justify-between z-20 shadow-2xl shrink-0">
         <div>
           <div className="h-16 flex items-center px-6 border-b border-white/10 gap-3 bg-black/20">
             <ShieldAlert className="text-[#10B981] w-6 h-6 animate-pulse" />
@@ -1010,13 +1097,10 @@ export default function BluefistEnterprise() {
             <button
               onClick={() => setActiveTab("dashboard")}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-                activeTab === "dashboard"
-                  ? "bg-white/10 text-white shadow-sm"
-                  : "hover:bg-white/5"
+                activeTab === "dashboard" ? "bg-white/10 text-white shadow-sm" : "hover:bg-white/5"
               }`}
             >
-              <LayoutDashboard className="w-4 h-4" />
-              Global Telemetry
+              <LayoutDashboard className="w-4 h-4" /> Global Telemetry
               {pendingCount > 0 && (
                 <span className="ml-auto flex items-center justify-center w-5 h-5 rounded-full bg-[#FF5F56] text-white text-[10px] font-bold animate-bounce">
                   {pendingCount}
@@ -1027,9 +1111,7 @@ export default function BluefistEnterprise() {
             <button
               onClick={() => setActiveTab("engine")}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-                activeTab === "engine"
-                  ? "bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]"
-                  : "hover:bg-white/5"
+                activeTab === "engine" ? "bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]" : "hover:bg-white/5"
               }`}
             >
               <Activity className="w-4 h-4" /> Live Orchestration
@@ -1038,12 +1120,20 @@ export default function BluefistEnterprise() {
             <button
               onClick={() => setActiveTab("repos")}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-                activeTab === "repos"
-                  ? "bg-white/10 text-white"
-                  : "hover:bg-white/5"
+                activeTab === "repos" ? "bg-white/10 text-white" : "hover:bg-white/5"
               }`}
             >
               <GitBranch className="w-4 h-4" /> Target Repositories
+            </button>
+
+            {/* ADDED PRICING TAB BUTTON */}
+            <button
+              onClick={() => setActiveTab("pricing")}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                activeTab === "pricing" ? "bg-white/10 text-white shadow-sm" : "hover:bg-white/5"
+              }`}
+            >
+              <CreditCard className="w-4 h-4" /> Plans & Pricing
             </button>
           </nav>
 
@@ -1086,7 +1176,7 @@ export default function BluefistEnterprise() {
       {/* ─────────────── MAIN ─────────────── */}
       <main className="flex-1 flex flex-col relative bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-[#10B981]/5 via-[#050505] to-[#050505]">
 
-        <header className="h-16 border-b border-white/10 bg-[#0A0A0A]/80 backdrop-blur-md flex items-center justify-between px-8 z-10">
+        <header className="h-16 border-b border-white/10 bg-[#0A0A0A]/80 backdrop-blur-md flex items-center justify-between px-8 z-10 shrink-0">
           <div className="text-sm font-medium text-white/50 flex items-center gap-2">
             Control Plane
             <span className="text-white/20">/</span>
@@ -1094,9 +1184,7 @@ export default function BluefistEnterprise() {
           </div>
           <div className="flex items-center gap-4">
             <div className={`flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-mono ${
-              dashWsConnected
-                ? "bg-[#10B981]/10 border-[#10B981]/20 text-[#10B981]"
-                : "bg-[#FF5F56]/10 border-[#FF5F56]/20 text-[#FF5F56]"
+              dashWsConnected ? "bg-[#10B981]/10 border-[#10B981]/20 text-[#10B981]" : "bg-[#FF5F56]/10 border-[#FF5F56]/20 text-[#FF5F56]"
             }`}>
               {dashWsConnected ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
               {dashWsConnected ? "LIVE FEED" : "DISCONNECTED"}
@@ -1113,19 +1201,15 @@ export default function BluefistEnterprise() {
 
             <div className="flex items-center gap-2 px-3 py-1 bg-[#10B981]/10 rounded-full border border-[#10B981]/20">
               <PulsingDot color="#10B981" />
-              <span className="text-[#10B981] text-xs font-bold tracking-wide">
-                SYSTEM ONLINE
-              </span>
+              <span className="text-[#10B981] text-xs font-bold tracking-wide">SYSTEM ONLINE</span>
             </div>
           </div>
         </header>
 
         <div className="p-8 overflow-y-auto h-[calc(100vh-64px)]">
-
           {/* ── ENGINE TAB ── */}
           {activeTab === "engine" && (
-            <div className="animate-fade-in-up max-w-7xl mx-auto grid grid-cols-12 gap-8 h-full">
-
+            <div className="animate-fade-in-up max-w-7xl mx-auto grid grid-cols-12 gap-8 h-full min-h-[620px]">
               <div className="col-span-7 flex flex-col gap-6">
                 <div className="flex gap-4">
                   <input
@@ -1157,9 +1241,7 @@ export default function BluefistEnterprise() {
                     <div className="w-3 h-3 rounded-full bg-[#FF5F56]" />
                     <div className="w-3 h-3 rounded-full bg-[#FFBD2E]" />
                     <div className="w-3 h-3 rounded-full bg-[#27C93F]" />
-                    <span className="text-xs ml-2 text-white/30 font-mono">
-                      root@bluefist-agent:~
-                    </span>
+                    <span className="text-xs ml-2 text-white/30 font-mono">root@bluefist-agent:~</span>
                   </div>
                   <div className="p-6 overflow-y-auto font-mono text-[13px] leading-relaxed scrollbar-hide h-full">
                     {logs.length === 0 ? (
@@ -1194,22 +1276,16 @@ export default function BluefistEnterprise() {
                 </div>
               </div>
 
-              {/* Reflexive State Machine — untouched */}
               <div className="col-span-5 h-[620px]">
                 <div className="bg-[#0A0A0A] border border-white/10 p-6 rounded-2xl shadow-xl h-full flex flex-col relative overflow-hidden">
                   <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none" />
                   <h2 className="text-white font-semibold mb-6 flex items-center justify-between border-b border-white/10 pb-4 relative z-10">
                     <div className="flex items-center gap-2">
-                      <Cpu className="w-5 h-5 text-[#00F0FF]" />
-                      Reflexive State Machine
+                      <Cpu className="w-5 h-5 text-[#00F0FF]" /> Reflexive State Machine
                     </div>
-                    <span className="text-xs font-mono bg-white/5 px-2 py-1 rounded text-white/50">
-                      Iter: {iterationCount}/3
-                    </span>
+                    <span className="text-xs font-mono bg-white/5 px-2 py-1 rounded text-white/50">Iter: {iterationCount}/3</span>
                   </h2>
                   <div className="flex-1 mt-2 relative z-10 pl-4">
-
-                    {/* Node 1 */}
                     <div className="flex gap-4 relative mb-8">
                       <div className={`absolute left-5 top-10 bottom-[-32px] w-0.5 ${agentStep > 1 ? "bg-[#3B82F6]" : "bg-white/10"}`} />
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border z-10 transition-all duration-500 ${agentStep === 1 ? "bg-[#3B82F6]/20 border-[#3B82F6] text-[#3B82F6] shadow-[0_0_15px_#3B82F6] animate-pulse" : agentStep > 1 ? "bg-[#3B82F6] border-[#3B82F6] text-black" : "bg-black border-white/10 text-white/30"}`}>
@@ -1221,7 +1297,6 @@ export default function BluefistEnterprise() {
                       </div>
                     </div>
 
-                    {/* Node 2 */}
                     <div className="flex gap-4 relative mb-8">
                       <div className={`absolute left-5 top-10 bottom-[-32px] w-0.5 ${agentStep > 2 ? "bg-[#FFBD2E]" : "bg-white/10"}`} />
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border z-10 transition-all duration-500 ${agentStep === 2 ? "bg-[#FFBD2E]/20 border-[#FFBD2E] text-[#FFBD2E] shadow-[0_0_15px_#FFBD2E] animate-pulse" : agentStep > 2 ? "bg-[#FFBD2E] border-[#FFBD2E] text-black" : "bg-black border-white/10 text-white/30"}`}>
@@ -1233,7 +1308,6 @@ export default function BluefistEnterprise() {
                       </div>
                     </div>
 
-                    {/* Node 3 */}
                     <div className="flex gap-4 relative mb-8">
                       <div className={`absolute left-5 top-10 bottom-[-32px] w-0.5 ${agentStep > 3 ? "bg-[#8B5CF6]" : "bg-white/10"}`} />
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border z-10 transition-all duration-500 ${agentStep === 3 ? "bg-[#8B5CF6]/20 border-[#8B5CF6] text-[#8B5CF6] shadow-[0_0_20px_#8B5CF6] animate-pulse" : agentStep > 3 ? "bg-[#8B5CF6] border-[#8B5CF6] text-white" : "bg-black border-white/10 text-white/30"}`}>
@@ -1243,14 +1317,11 @@ export default function BluefistEnterprise() {
                         <h4 className={`text-sm font-bold ${agentStep === 3 ? "text-white" : agentStep > 3 ? "text-white/80" : "text-white/40"}`}>3. Swarm Synthesis</h4>
                         <p className="text-xs text-white/50 mt-1">Gemini 2.5 generating patch</p>
                         {isCriticActive && agentStep === 3 && (
-                          <span className="text-[10px] text-[#FF5F56] font-bold uppercase mt-1 block">
-                            ↑ Debugging previous failure
-                          </span>
+                          <span className="text-[10px] text-[#FF5F56] font-bold uppercase mt-1 block">↑ Debugging previous failure</span>
                         )}
                       </div>
                     </div>
 
-                    {/* Node 4 */}
                     <div className="flex gap-4 relative mb-8">
                       <div className={`absolute left-5 top-10 bottom-[-32px] w-0.5 ${agentStep > 4 ? "bg-[#10B981]" : "bg-white/10"}`} />
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border z-10 transition-all duration-500 ${agentStep === 4 ? "bg-[#00F0FF]/20 border-[#00F0FF] text-[#00F0FF] shadow-[0_0_15px_#00F0FF] animate-pulse" : agentStep > 4 ? "bg-[#00F0FF] border-[#00F0FF] text-black" : "bg-black border-white/10 text-white/30"}`}>
@@ -1262,7 +1333,6 @@ export default function BluefistEnterprise() {
                       </div>
                     </div>
 
-                    {/* Node 5 */}
                     <div className="flex gap-4 relative mb-2">
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border z-10 transition-all duration-500 ${agentStep === 5 ? "bg-[#10B981]/20 border-[#10B981] text-[#10B981] shadow-[0_0_15px_#10B981] animate-pulse" : agentStep > 5 ? "bg-[#10B981] border-[#10B981] text-black shadow-[0_0_20px_#10B981]" : "bg-black border-white/10 text-white/30"}`}>
                         <GitPullRequest className="w-5 h-5" />
@@ -1272,7 +1342,6 @@ export default function BluefistEnterprise() {
                         <p className="text-xs text-white/50 mt-1">Pushing verified PR to remote</p>
                       </div>
                     </div>
-
                   </div>
                 </div>
               </div>
@@ -1281,22 +1350,17 @@ export default function BluefistEnterprise() {
 
           {/* ── TELEMETRY TAB ── */}
           {activeTab === "dashboard" && (
-            <TelemetryTab
-              events={telemetryEvents}
-              summary={healthSummary}
-              wsConnected={dashWsConnected}
-            />
+            <TelemetryTab events={telemetryEvents} summary={healthSummary} wsConnected={dashWsConnected} />
           )}
 
           {/* ── REPOS TAB ── */}
           {activeTab === "repos" && (
-            <RepoTab
-              targets={targets}
-              onRegister={handleRegisterTarget}
-              onDeregister={handleDeregisterTarget}
-              isRegistering={isRegistering}
-              registerError={registerError}
-            />
+            <RepoTab targets={targets} onRegister={handleRegisterTarget} onDeregister={handleDeregisterTarget} isRegistering={isRegistering} registerError={registerError} />
+          )}
+
+          {/* ── PRICING TAB ── */}
+          {activeTab === "pricing" && (
+            <PricingTab />
           )}
         </div>
       </main>
@@ -1310,12 +1374,9 @@ export default function BluefistEnterprise() {
           <div>
             <p className="text-sm font-bold mb-1">Twilio System Alert</p>
             <p className="text-xs leading-relaxed text-white/90">
-              🚨 Incident Resolved: Patch verified with{" "}
-              <span className="font-bold text-[#25D366]">Exit Code 0</span> in sandbox.
+              🚨 Incident Resolved: Patch verified with <span className="font-bold text-[#25D366]">Exit Code 0</span> in sandbox.
               <br /><br />
-              <span className="underline font-bold cursor-pointer hover:text-white/80 transition-colors">
-                View Pull Request →
-              </span>
+              <span className="underline font-bold cursor-pointer hover:text-white/80 transition-colors">View Pull Request →</span>
             </p>
           </div>
         </div>
