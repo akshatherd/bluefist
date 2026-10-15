@@ -9,7 +9,7 @@ logging.basicConfig(level=logging.INFO)
 
 TWILIO_API_URL = (
     f"https://api.twilio.com/2010-04-01/Accounts/"
-    f"{settings.TWILIO_ACCOUNT_SID}/Messages.json"
+    f"{settings.twilio_account_sid}/Messages.json"
 )
 
 
@@ -22,18 +22,23 @@ def send_whatsapp(message: str) -> bool:
         False -> Failed
     """
 
+    if not all((settings.twilio_account_sid, settings.twilio_auth_token,
+                settings.twilio_whatsapp_number, settings.user_whatsapp_number)):
+        logging.info("WhatsApp notifications are not configured; skipping.")
+        return False
+
     try:
 
         response = httpx.post(
             TWILIO_API_URL,
             data={
-                "From": settings.TWILIO_WHATSAPP_NUMBER,
-                "To": settings.USER_WHATSAPP_NUMBER,
+                "From": settings.twilio_whatsapp_number,
+                "To": settings.user_whatsapp_number,
                 "Body": message,
             },
             auth=(
-                settings.TWILIO_ACCOUNT_SID,
-                settings.TWILIO_AUTH_TOKEN,
+                settings.twilio_account_sid,
+                settings.twilio_auth_token,
             ),
             timeout=20,
         )

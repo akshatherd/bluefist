@@ -20,14 +20,10 @@
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: #050505;
+  color: #ededed;
   font-family: Arial, Helvetica, sans-serif;
 }
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 @keyframes fadeInUp {
   from { 
     opacity: 0; 
@@ -50,4 +46,15 @@ body {
 .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
