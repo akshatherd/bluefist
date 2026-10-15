@@ -257,9 +257,12 @@ function ApprovalModal({ approval, onDecide, isSubmitting }: ApprovalModalProps)
             className="flex-1 flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-[#10B981] text-black font-bold text-sm hover:bg-[#059669] transition-all disabled:opacity-40 shadow-[0_0_20px_rgba(16,185,129,0.4)]"
           >
             {isSubmitting ? <RotateCcw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-            Authorize Patch
+            Create GitHub PR
           </button>
         </div>
+        <p className="mt-3 text-center text-[11px] text-white/40">
+          Approval creates a GitHub pull request. It does not merge the change into the repository.
+        </p>
       </div>
     </div>
   );
@@ -596,6 +599,7 @@ export default function BluefistConsole() {
   const [activeModal, setActiveModal]                 = useState<PendingApproval | null>(null);
   const [isSubmittingApproval, setIsSubmittingApproval] = useState(false);
   const [approvalToast, setApprovalToast]             = useState<string | null>(null);
+  const [approvalPrUrl, setApprovalPrUrl]             = useState<string | null>(null);
 
   // ── Target registry ────────────────────────────────────────────────────────
   const [targets, setTargets]           = useState<MonitorTarget[]>([]);
@@ -732,7 +736,9 @@ export default function BluefistConsole() {
 
         if (msg.type === "deploy_complete") {
           setAgentStep(6);
+          setActiveModal((current) => current?.approval_id === msg.approval_id ? null : current);
           setApprovalToast(`✅ Patch deployed! PR: ${msg.pr_url ?? "—"}`);
+          setApprovalPrUrl(msg.pr_url ?? null);
           setPendingApprovals((prev) =>
             prev.map((p) =>
               p.approval_id === msg.approval_id
@@ -858,6 +864,7 @@ export default function BluefistConsole() {
     note: string
   ) => {
     setIsSubmittingApproval(true);
+    setApprovalPrUrl(null);
     try {
       const res = await fetch(`${API_BASE}/approvals/decide`, {
         method: "POST",
@@ -872,14 +879,19 @@ export default function BluefistConsole() {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.detail ?? `HTTP ${res.status}`);
       }
+      const result = await res.json();
       setActiveModal(null);
-      setApprovalToast(
-        decision === "approve"
-          ? "🚀 Patch authorized — deploying to GitHub..."
-          : "❌ Patch rejected — anomaly logged."
-      );
+      setPendingApprovals((prev) => prev.map((item) => item.approval_id === approvalId
+        ? { ...item, status: decision === "approve" ? "deployed" : "rejected" }
+        : item));
+      if (decision === "approve" && result.pr_url) {
+        setApprovalPrUrl(result.pr_url);
+        setApprovalToast("✅ GitHub pull request created. Review it before merging.");
+      } else {
+        setApprovalToast("❌ Patch rejected. No GitHub pull request was created.");
+      }
     } catch (err) {
-      setApprovalToast(`⚠️ Request failed: ${err}`);
+      setApprovalToast(`⚠️ Approval failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setIsSubmittingApproval(false);
     }
@@ -1241,8 +1253,13 @@ export default function BluefistConsole() {
 
       {/* Generic action toast */}
       {approvalToast && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 px-6 py-3 bg-[#0A0A0A] border border-white/20 rounded-full text-white text-sm font-mono shadow-2xl z-50 animate-fade-in-up whitespace-nowrap">
-          {approvalToast}
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 flex max-w-[calc(100vw-2rem)] flex-wrap items-center justify-center gap-x-3 gap-y-1 px-6 py-3 bg-[#0A0A0A] border border-white/20 rounded-2xl text-white text-sm font-mono shadow-2xl z-50 animate-fade-in-up text-center">
+          <span>{approvalToast}</span>
+          {approvalPrUrl && (
+            <a href={approvalPrUrl} target="_blank" rel="noreferrer" className="text-[#10B981] underline underline-offset-4">
+              Open pull request ↗
+            </a>
+          )}
         </div>
       )}
     </div>

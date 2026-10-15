@@ -1,6 +1,6 @@
 # Bluefist
 
-Bluefist is a single-operator prototype for turning a reviewer-supplied incident report into a scoped Python patch proposal. It loads one selected file from GitHub, asks Gemini for a complete-file edit, performs a syntax-only check in a network-isolated Docker container, and waits for a human decision before opening a pull request.
+Bluefist is a single-operator prototype for turning a reviewer-supplied incident report into a scoped Python patch proposal. It can monitor registered HTTP endpoints for availability anomalies. For code proposals, an operator selects a GitHub Python file and supplies the incident details; Bluefist loads that file, asks Gemini for a complete-file edit, performs a syntax-only check in a network-isolated Docker container, and waits for a human decision before opening a pull request.
 
 **It does not execute generated code, run the repository test suite, automatically repair an outage, or merge a pull request.** An HTTP health check reports availability only; it is not used to guess a code fix. Review and test every proposed change before merging.
 
@@ -32,11 +32,15 @@ With Docker running, the syntax check uses `python:3.12-alpine` with no network,
 
 ## Demo flow
 
-1. Enter a public or accessible GitHub repository URL and the exact `.py` file path.
+1. Enter a public or accessible GitHub repository URL and the exact `.py` file path. Bluefist does not scan the repository source or test suite to discover code bugs automatically.
 2. Paste a relevant traceback or concise reproduction details. Remove secrets and personal data first; the source file and incident context are sent to the configured Gemini API.
 3. Select **Prepare proposal**. Bluefist fetches that file, requests a patch, and checks syntax.
-4. Inspect the original and proposed code in the approval dialog. Reject it or approve it to create a GitHub branch and pull request. Approval does not merge the PR.
+4. Inspect the original and proposed code in the approval dialog. Reject it or approve it to create a GitHub branch and pull request. The approval dialog closes on success and provides a link to the pull request. Approval does not merge the PR; merge it on GitHub after review to update the default branch.
 5. Run the repository's own tests and review the full PR diff before merging.
+
+### Intentional demo bug
+
+`demo/buggy_sample.py` intentionally returns one too many. To try the proposal flow, use the Bluefist repository URL, file path `demo/buggy_sample.py`, and incident details such as: `add_numbers(2, 3) returns 6; it should return 5. Remove the extra +1.` This demonstrates a reviewer-supplied issue. It is not automatic repository anomaly detection. The demo file must be present on the repository's default branch to load through the current UI; merge the branch that adds it first, or use another accessible repo with the same file.
 
 ## Secured deployment configuration
 
