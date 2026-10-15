@@ -2,18 +2,29 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import {
-  Terminal, GitBranch, Activity, ShieldAlert, MessageSquare,
+  Terminal, GitBranch, Activity, ShieldAlert,
   LayoutDashboard, Cpu, Play, AlertTriangle, Search, BrainCircuit,
   Box, GitPullRequest, RotateCcw, Flame, Wifi, WifiOff, Eye,
-  CheckCircle2, XCircle, Clock, Plus, Trash2, Globe, Radio,
-  ChevronDown, ChevronUp, Zap, Server, TrendingUp, Shield, CreditCard
+  CheckCircle2, XCircle, Plus, Trash2, Globe, Radio,
+  ChevronDown, ChevronUp, Zap, Server, TrendingUp, Shield
 } from "lucide-react";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONSTANTS
 // ─────────────────────────────────────────────────────────────────────────────
-const API_BASE  = "http://localhost:8000";
-const WS_BASE   = "ws://localhost:8000";
+const API_BASE = (process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:8000").replace(/\/$/, "");
+const API_TOKEN_KEY = "bluefist_api_token";
+const apiHeaders = (json = false): HeadersInit => {
+  const token = typeof window === "undefined" ? "" : window.sessionStorage.getItem(API_TOKEN_KEY) ?? "";
+  return { ...(json ? { "Content-Type": "application/json" } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+};
+const websocketUrl = (path: string) => {
+  const url = new URL(path, API_BASE);
+  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+  const token = typeof window === "undefined" ? "" : window.sessionStorage.getItem(API_TOKEN_KEY) ?? "";
+  if (token) url.searchParams.set("token", token);
+  return url.toString();
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPE DEFINITIONS
@@ -29,6 +40,7 @@ interface TelemetryEvent {
     error: string | null;
   };
   approval_id?: string;
+  repo_url?: string;
   file_path?: string;
   patch_preview?: string;
   full_patch?: string;
@@ -408,15 +420,15 @@ function RepoTab({
     endpoint_url:   "",
     check_interval: 60,
   });
-  const [fieldErrors, setFieldErrors] = useState<Partial<MonitorTarget>>({});
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof MonitorTarget, string>>>({});
 
   const validate = (): boolean => {
     const errs: Partial<Record<keyof MonitorTarget, string>> = {};
     if (!form.target_id.trim())    errs.target_id    = "Required";
     if (!form.repo_url.trim())     errs.repo_url     = "Required";
     if (!form.endpoint_url.trim()) errs.endpoint_url = "Required";
-    if (form.check_interval < 15)  errs.check_interval = "Min 15 s" as unknown as number;
-    setFieldErrors(errs as Partial<MonitorTarget>);
+    if (form.check_interval < 15)  errs.check_interval = "Min 15 s";
+    setFieldErrors(errs);
     return Object.keys(errs).length === 0;
   };
 
@@ -556,206 +568,23 @@ function RepoTab({
 // ─────────────────────────────────────────────────────────────────────────────
 // PRICING TAB COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
-function PricingTab() {
-  const [isYearly, setIsYearly] = useState(true);
-
-  const plans = [
-    {
-      name: "Developer",
-      tagline: "For individual builders and open-source maintainers.",
-      monthlyPrice: 0,
-      yearlyPrice: 0,
-      badge: "Free Forever",
-      highlight: false,
-      features: [
-        "Up to 50 AI-TDD Fixes / mo",
-        "Single GitHub Repository",
-        "Local Circuit Breaker Engine (Ollama)",
-        "Basic AST Context Parser",
-        "Community Discord Support",
-      ],
-      cta: "Get Started Free",
-    },
-    {
-      name: "Team & Startup",
-      tagline: "For growing dev teams requiring autonomous incident remediation.",
-      monthlyPrice: 3499,
-      yearlyPrice: 2799,
-      badge: "Most Popular",
-      highlight: true,
-      features: [
-        "Up to 1,000 AI-TDD Fixes / mo",
-        "Up to 10 Repositories",
-        "Cross-File AST Call-Graph Tracing",
-        "Automated PyTest Suite Synthesis",
-        "GitHub Actions & Webhook Integration",
-        "Twilio & WhatsApp Incident Alerts",
-        "Priority Support (4-hour SLA)",
-      ],
-      cta: "Start 14-Day Free Trial",
-    },
-    {
-      name: "Enterprise SRE",
-      tagline: "For mission-critical infrastructure requiring zero-trust security.",
-      monthlyPrice: 14999,
-      yearlyPrice: 11999,
-      badge: "Zero-Trust Ready",
-      highlight: false,
-      features: [
-        "Unlimited AI-TDD Hotfixes",
-        "Unlimited Repositories & Microservices",
-        "Skyflow Zero-Trust PII / Secret Vault",
-        "Custom LLM Routing (Gemini, Claude, Self-Hosted)",
-        "Role-Based Access Control (RBAC) & Audit Logs",
-        "Dedicated SRE Account Manager",
-        "99.99% Uptime Guarantee (SLA)",
-      ],
-      cta: "Contact Enterprise Sales",
-    },
-  ];
-
-  return (
-    <div className="max-w-7xl mx-auto space-y-12 animate-fade-in-up pb-16">
-      <div className="text-center max-w-3xl mx-auto pt-8">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#10B981]/10 border border-[#10B981]/30 text-[#10B981] text-xs font-semibold tracking-wide uppercase mb-4 shadow-[0_0_15px_rgba(16,185,129,0.15)]">
-          🛡️ Enterprise-Grade Reliability
-        </div>
-        <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
-          Predictable Pricing for Autonomous SRE
-        </h1>
-        <p className="mt-4 text-white/50 text-lg">
-          Stop burning engineer hours on manual hotfixes. Choose a plan that scales with your codebase.
-        </p>
-
-        <div className="mt-8 flex justify-center items-center gap-4">
-          <span className={`text-sm font-medium ${!isYearly ? "text-white" : "text-white/40"}`}>
-            Monthly Billing
-          </span>
-          <button
-            onClick={() => setIsYearly(!isYearly)}
-            className="relative w-14 h-8 rounded-full bg-[#0A0A0A] p-1 transition-colors duration-200 border border-white/10 focus:outline-none"
-          >
-            <div
-              className={`w-6 h-6 rounded-full bg-[#10B981] shadow-md transform transition-transform duration-200 ${
-                isYearly ? "translate-x-6" : "translate-x-0"
-              }`}
-            />
-          </button>
-          <span className={`text-sm font-medium flex items-center gap-2 ${isYearly ? "text-white" : "text-white/40"}`}>
-            Yearly Billing
-            <span className="bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/30 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
-              Save 20%
-            </span>
-          </span>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
-        {plans.map((plan, index) => {
-          const price = isYearly ? plan.yearlyPrice : plan.monthlyPrice;
-
-          return (
-            <div
-              key={index}
-              className={`relative flex flex-col justify-between rounded-2xl p-8 transition-all duration-300 ${
-                plan.highlight
-                  ? "bg-[#0A0A0A]/90 border-2 border-[#10B981]/60 shadow-[0_0_35px_rgba(16,185,129,0.15)] scale-105 z-10"
-                  : "bg-[#0A0A0A]/40 border border-white/10 hover:border-white/20 hover:bg-[#0A0A0A]/60"
-              }`}
-            >
-              {plan.badge && (
-                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase shadow-md ${
-                      plan.highlight
-                        ? "bg-[#10B981] text-black"
-                        : "bg-[#050505] border border-white/10 text-white/80"
-                    }`}
-                  >
-                    {plan.badge}
-                  </span>
-                </div>
-              )}
-
-              <div>
-                <h3 className="text-2xl font-bold text-white mb-2">{plan.name}</h3>
-                <p className="text-white/50 text-sm min-h-[40px]">{plan.tagline}</p>
-
-                <div className="my-6 flex items-baseline gap-1">
-                  <span className="text-4xl font-extrabold text-white">
-                    ₹{price.toLocaleString("en-IN")}
-                  </span>
-                  <span className="text-white/40 text-sm font-medium">
-                    {price === 0 ? "" : "/ month"}
-                  </span>
-                </div>
-
-                <hr className="border-white/10 my-6" />
-
-                <ul className="space-y-3.5 mb-8">
-                  {plan.features.map((feature, idx) => (
-                    <li key={idx} className="flex items-start gap-3 text-sm text-white/70">
-                      <svg
-                        className="w-5 h-5 text-[#10B981] shrink-0 mt-0.5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <button
-                className={`w-full py-3.5 px-6 rounded-xl font-bold text-sm tracking-wide transition-all duration-200 ${
-                  plan.highlight
-                    ? "bg-[#10B981] hover:bg-[#059669] text-black shadow-[0_0_20px_rgba(16,185,129,0.4)]"
-                    : "bg-[#050505] hover:bg-white/5 text-white border border-white/10"
-                }`}
-              >
-                {plan.cta}
-              </button>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="max-w-4xl mx-auto mt-16 text-center border border-white/10 rounded-2xl p-6 bg-[#0A0A0A]/40 backdrop-blur-sm">
-        <div className="flex flex-wrap justify-around items-center gap-6 text-white/50 text-xs font-semibold uppercase tracking-wider">
-          <div className="flex items-center gap-2">
-            <span className="text-[#10B981] text-lg">⚡</span> Instant Setup in 2 Minutes
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[#10B981] text-lg">🛡️</span> Circuit Breaker Failover Included
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[#10B981] text-lg">💳</span> Cancel or Upgrade Anytime
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // MAIN APPLICATION
 // ─────────────────────────────────────────────────────────────────────────────
-export default function BluefistEnterprise() {
+export default function BluefistConsole() {
 
   // ── Tab state ──────────────────────────────────────────────────────────────
-  const [activeTab, setActiveTab] = useState<"engine" | "dashboard" | "repos" | "pricing">("engine");
+  const [activeTab, setActiveTab] = useState<"engine" | "dashboard" | "repos">("engine");
 
   // ── Ghost Terminal ─────────────────────────────────────────────────────────
-  const [repoUrl, setRepoUrl]               = useState("https://github.com/akshat/checkout-service");
+  const [repoUrl, setRepoUrl]               = useState("");
+  const [filePath, setFilePath]             = useState("");
+  const [errorTrace, setErrorTrace]         = useState("");
+  const [apiToken, setApiToken]             = useState("");
   const [logs, setLogs]                     = useState<string[]>([]);
   const [isEngineActive, setIsEngineActive] = useState(false);
-  const [showWhatsApp, setShowWhatsApp]     = useState(false);
   const [agentStep, setAgentStep]           = useState(0);
   const [iterationCount, setIterationCount] = useState(1);
-  const [isCriticActive, setIsCriticActive] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   // ── Dashboard WebSocket ────────────────────────────────────────────────────
   const [dashWsConnected, setDashWsConnected] = useState(false);
@@ -777,6 +606,24 @@ export default function BluefistEnterprise() {
   const logsEndRef = useRef<HTMLDivElement>(null);
   const wsRef      = useRef<WebSocket | null>(null);
   const dashWsRef  = useRef<WebSocket | null>(null);
+  const dashReconnectRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const unmountedRef = useRef(false);
+  const connectDashboardWsRef = useRef<() => void>(() => {});
+
+  useEffect(() => {
+    if (apiToken) window.sessionStorage.setItem(API_TOKEN_KEY, apiToken);
+    else window.sessionStorage.removeItem(API_TOKEN_KEY);
+    const headers = apiHeaders();
+    void Promise.all([
+      fetch(`${API_BASE}/monitor/targets`, { headers }).then((r) => r.ok ? r.json() : null),
+      fetch(`${API_BASE}/approvals/pending`, { headers }).then((r) => r.ok ? r.json() : null),
+      fetch(`${API_BASE}/telemetry/summary`, { headers }).then((r) => r.ok ? r.json() : null),
+    ]).then(([targetData, approvalData, summaryData]) => {
+      if (targetData?.targets) setTargets(Object.values(targetData.targets) as MonitorTarget[]);
+      if (approvalData?.pending) setPendingApprovals(approvalData.pending);
+      if (summaryData?.summary) setHealthSummary(summaryData.summary);
+    }).catch(() => setApprovalToast("Could not load saved dashboard state. Check the API connection."));
+  }, [apiToken]);
 
   // ── Auto-scroll terminal ───────────────────────────────────────────────────
   useEffect(() => {
@@ -794,9 +641,9 @@ export default function BluefistEnterprise() {
   // DASHBOARD WEBSOCKET
   // ─────────────────────────────────────────────────────────────────────────
   const connectDashboardWs = useCallback(() => {
-    if (dashWsRef.current?.readyState === WebSocket.OPEN) return;
+    if (dashWsRef.current?.readyState === WebSocket.OPEN || dashWsRef.current?.readyState === WebSocket.CONNECTING) return;
 
-    const ws = new WebSocket(`${WS_BASE}/ws/dashboard`);
+    const ws = new WebSocket(websocketUrl("/ws/dashboard"));
     dashWsRef.current = ws;
 
     ws.onopen = () => setDashWsConnected(true);
@@ -814,6 +661,19 @@ export default function BluefistEnterprise() {
 
         if (msg.type === "state_snapshot") {
           if (msg.pending_approvals) setPendingApprovals(msg.pending_approvals);
+          if (msg.recent_telemetry) {
+            const snapshot: Record<string, TargetHealth> = {};
+            for (const item of msg.recent_telemetry) {
+              if ((item.event === "heartbeat" || item.event === "anomaly") && item.ping && !snapshot[item.target]) {
+                snapshot[item.target] = {
+                  target_id: item.target, last_seen: item.ts,
+                  status: item.ping.status, latency_ms: item.ping.latency_ms,
+                  http_code: item.ping.http_code,
+                };
+              }
+            }
+            setHealthSummary((prev) => ({ ...snapshot, ...prev }));
+          }
           if (msg.recent_telemetry)
             setTelemetryEvents((prev) =>
               [...(msg.recent_telemetry ?? []), ...prev].slice(0, 200)
@@ -852,7 +712,7 @@ export default function BluefistEnterprise() {
           const appr: PendingApproval = {
             approval_id:   msg.approval_id!,
             target_id:     msg.target,
-            repo_url:      "",
+            repo_url:      msg.repo_url ?? "",
             file_path:     msg.file_path ?? "",
             patch_code:    msg.full_patch ?? "",
             original_code: msg.original_code ?? "",
@@ -867,9 +727,11 @@ export default function BluefistEnterprise() {
           });
           setActiveModal(appr);
           setActiveTab("dashboard");
+          setAgentStep(5);
         }
 
         if (msg.type === "deploy_complete") {
+          setAgentStep(6);
           setApprovalToast(`✅ Patch deployed! PR: ${msg.pr_url ?? "—"}`);
           setPendingApprovals((prev) =>
             prev.map((p) =>
@@ -897,15 +759,21 @@ export default function BluefistEnterprise() {
 
     ws.onclose = () => {
       setDashWsConnected(false);
-      setTimeout(connectDashboardWs, 5000);
+      if (!unmountedRef.current) dashReconnectRef.current = setTimeout(() => connectDashboardWsRef.current(), 2500);
     };
 
     ws.onerror = () => ws.close();
   }, []);
 
   useEffect(() => {
+    unmountedRef.current = false;
+    connectDashboardWsRef.current = connectDashboardWs;
     connectDashboardWs();
-    return () => { dashWsRef.current?.close(); };
+    return () => {
+      unmountedRef.current = true;
+      if (dashReconnectRef.current) clearTimeout(dashReconnectRef.current);
+      dashWsRef.current?.close();
+    };
   }, [connectDashboardWs]);
 
   // Keep-alive ping every 25 s
@@ -922,18 +790,20 @@ export default function BluefistEnterprise() {
   // GHOST TERMINAL ENGINE
   // ─────────────────────────────────────────────────────────────────────────
   const triggerEngine = () => {
-    if (!repoUrl) return;
+    if (!repoUrl || !filePath || !errorTrace.trim()) {
+      setApprovalToast("Add the repository, exact Python file path, and incident details first.");
+      return;
+    }
     setIsEngineActive(true);
     setAgentStep(1);
     setIterationCount(1);
-    setIsCriticActive(false);
-    setShowWhatsApp(false);
-    setLogs(["🚀 [SYSTEM] Initializing BLUEFIST Reflexive Execution Engine..."]);
+    setIsRetrying(false);
+    setLogs(["🚀 [SYSTEM] Building an incident-scoped patch proposal..."]);
 
-    const ws = new WebSocket(`${WS_BASE}/ws/ghost-terminal`);
+    const ws = new WebSocket(websocketUrl("/ws/ghost-terminal"));
     wsRef.current = ws;
 
-    ws.onopen = () => ws.send(JSON.stringify({ repo_url: repoUrl }));
+    ws.onopen = () => ws.send(JSON.stringify({ repo_url: repoUrl, file_path: filePath, error_trace: errorTrace }));
 
     ws.onmessage = (event) => {
       const data: string = event.data;
@@ -941,25 +811,22 @@ export default function BluefistEnterprise() {
 
       if (data.includes("Connecting to GitHub") || data.includes("Extracted Abstract")) {
         setAgentStep(1);
-      } else if (data.includes("Anomaly detected")) {
+      } else if (data.toLowerCase().includes("incident details") || data.includes("Anomaly detected")) {
         setAgentStep(2);
       } else if (data.includes("Synthesizing patch")) {
         setAgentStep(3);
-        setIsCriticActive(false);
-      } else if (data.includes("Running verification sequence")) {
+        setIsRetrying(false);
+      } else if (data.includes("SYNTAX CHECK") || data.includes("VALIDATION")) {
         setAgentStep(4);
       } else if (
         data.includes("Sandbox rejected patch") ||
         data.includes("[FEEDBACK LOOP]")
       ) {
-        setIsCriticActive(true);
+        setIsRetrying(true);
         setIterationCount((prev) => prev + 1);
         setAgentStep(3);
-      } else if (data.includes("Creating feature branch")) {
+      } else if (data.includes("REVIEW REQUIRED")) {
         setAgentStep(5);
-      } else if (data.includes("Pull Request established")) {
-        setAgentStep(6);
-        setTimeout(() => setShowWhatsApp(true), 1500);
       }
     };
 
@@ -979,8 +846,7 @@ export default function BluefistEnterprise() {
     setLogs([]);
     setAgentStep(0);
     setIterationCount(1);
-    setIsCriticActive(false);
-    setShowWhatsApp(false);
+    setIsRetrying(false);
   };
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -995,7 +861,7 @@ export default function BluefistEnterprise() {
     try {
       const res = await fetch(`${API_BASE}/approvals/decide`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: apiHeaders(true),
         body: JSON.stringify({
           approval_id:   approvalId,
           decision,
@@ -1028,7 +894,7 @@ export default function BluefistEnterprise() {
     try {
       const res = await fetch(`${API_BASE}/monitor/register`, {
         method:  "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: apiHeaders(true),
         body:    JSON.stringify(target),
       });
       if (!res.ok) {
@@ -1036,7 +902,7 @@ export default function BluefistEnterprise() {
         throw new Error(err.detail ?? `HTTP ${res.status}`);
       }
       const data = await res.json();
-      setTargets((prev) => [...prev, target]);
+      setTargets((prev) => [...prev.filter((item) => item.target_id !== target.target_id), target]);
       setApprovalToast(`✅ "${data.target_id}" registered — monitoring started.`);
     } catch (err) {
       const msg = `Registration failed: ${err}`;
@@ -1051,6 +917,7 @@ export default function BluefistEnterprise() {
     try {
       const res = await fetch(`${API_BASE}/monitor/${targetId}`, {
         method: "DELETE",
+        headers: apiHeaders(),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -1074,7 +941,7 @@ export default function BluefistEnterprise() {
   // RENDER
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div className="flex h-screen bg-[#050505] text-[#A1A1AA] font-sans overflow-hidden selection:bg-[#10B981] selection:text-black">
+    <div className="flex min-h-screen flex-col bg-[#050505] text-[#A1A1AA] font-sans selection:bg-[#10B981] selection:text-black xl:h-screen xl:flex-row xl:overflow-hidden">
 
       {/* Emergency approval modal */}
       {activeModal && (
@@ -1086,7 +953,7 @@ export default function BluefistEnterprise() {
       )}
 
       {/* ─────────────── SIDEBAR ─────────────── */}
-      <aside className="w-64 border-r border-white/10 bg-[#0A0A0A] flex flex-col justify-between z-20 shadow-2xl shrink-0">
+      <aside className="w-full border-b border-white/10 bg-[#0A0A0A] flex flex-col justify-between z-20 shadow-2xl shrink-0 xl:w-64 xl:border-b-0 xl:border-r">
         <div>
           <div className="h-16 flex items-center px-6 border-b border-white/10 gap-3 bg-black/20">
             <ShieldAlert className="text-[#10B981] w-6 h-6 animate-pulse" />
@@ -1126,15 +993,6 @@ export default function BluefistEnterprise() {
               <GitBranch className="w-4 h-4" /> Target Repositories
             </button>
 
-            {/* ADDED PRICING TAB BUTTON */}
-            <button
-              onClick={() => setActiveTab("pricing")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-                activeTab === "pricing" ? "bg-white/10 text-white shadow-sm" : "hover:bg-white/5"
-              }`}
-            >
-              <CreditCard className="w-4 h-4" /> Plans & Pricing
-            </button>
           </nav>
 
           {/* Pending approvals in sidebar */}
@@ -1166,15 +1024,26 @@ export default function BluefistEnterprise() {
           <div className="flex items-center gap-3 px-4 py-2">
             <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#10B981] to-[#00F0FF] shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
             <div>
-              <p className="text-white text-xs font-bold">Akshat Upadhyay</p>
-              <p className="text-[10px] text-[#10B981] font-mono mt-0.5">ADMIN_ROOT</p>
+              <p className="text-white text-xs font-bold">Bluefist operator</p>
+              <p className="text-[10px] text-white/40 font-mono mt-0.5">LOCAL SESSION</p>
             </div>
           </div>
+          <label className="mt-3 block px-4 text-[10px] uppercase tracking-wider text-white/40">
+            API bearer token <span className="normal-case tracking-normal">(optional locally)</span>
+            <input
+              type="password"
+              autoComplete="off"
+              value={apiToken}
+              onChange={(event) => setApiToken(event.target.value)}
+              placeholder="Paste token for secured deployments"
+              className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-white outline-none focus:border-[#10B981]"
+            />
+          </label>
         </div>
       </aside>
 
       {/* ─────────────── MAIN ─────────────── */}
-      <main className="flex-1 flex flex-col relative bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-[#10B981]/5 via-[#050505] to-[#050505]">
+      <main className="min-w-0 flex-1 flex flex-col relative bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-[#10B981]/5 via-[#050505] to-[#050505]">
 
         <header className="h-16 border-b border-white/10 bg-[#0A0A0A]/80 backdrop-blur-md flex items-center justify-between px-8 z-10 shrink-0">
           <div className="text-sm font-medium text-white/50 flex items-center gap-2">
@@ -1190,34 +1059,36 @@ export default function BluefistEnterprise() {
               {dashWsConnected ? "LIVE FEED" : "DISCONNECTED"}
             </div>
 
-            {isCriticActive && (
+            {isRetrying && (
               <div className="flex items-center gap-2 px-3 py-1 bg-[#8B5CF6]/10 rounded-full border border-[#8B5CF6]/30 animate-pulse">
                 <Flame className="w-3 h-3 text-[#8B5CF6]" />
                 <span className="text-[#8B5CF6] text-xs font-bold tracking-wide">
-                  CRITIC LOOP ACTIVE (Iter {iterationCount})
+                  RETRYING WITH VALIDATION FEEDBACK · {iterationCount}/3
                 </span>
               </div>
             )}
 
-            <div className="flex items-center gap-2 px-3 py-1 bg-[#10B981]/10 rounded-full border border-[#10B981]/20">
-              <PulsingDot color="#10B981" />
-              <span className="text-[#10B981] text-xs font-bold tracking-wide">SYSTEM ONLINE</span>
-            </div>
           </div>
         </header>
 
-        <div className="p-8 overflow-y-auto h-[calc(100vh-64px)]">
+        <div className="p-5 md:p-8 overflow-y-auto min-h-[calc(100vh-64px)] xl:h-[calc(100vh-64px)]">
           {/* ── ENGINE TAB ── */}
           {activeTab === "engine" && (
-            <div className="animate-fade-in-up max-w-7xl mx-auto grid grid-cols-12 gap-8 h-full min-h-[620px]">
-              <div className="col-span-7 flex flex-col gap-6">
-                <div className="flex gap-4">
-                  <input
-                    type="text"
-                    value={repoUrl}
-                    onChange={(e) => setRepoUrl(e.target.value)}
-                    className="flex-1 bg-[#0A0A0A] border border-white/10 rounded-xl px-4 text-white font-mono text-sm focus:outline-none focus:border-[#10B981] transition-all shadow-inner"
-                  />
+            <div className="animate-fade-in-up max-w-7xl mx-auto grid grid-cols-1 xl:grid-cols-12 gap-6 xl:gap-8 min-h-[620px]">
+              <div className="xl:col-span-7 flex flex-col gap-6">
+                <div className="rounded-2xl border border-white/10 bg-[#0A0A0A] p-5 shadow-xl space-y-4">
+                  <div>
+                    <p className="text-white font-semibold">Create a repair proposal</p>
+                    <p className="text-xs text-white/45 mt-1">Give Bluefist the incident details and the exact Python file to inspect.</p>
+                  </div>
+                  <label className="block text-xs text-white/60">GitHub repository URL
+                    <input type="url" value={repoUrl} onChange={(e) => setRepoUrl(e.target.value)} placeholder="https://github.com/owner/repository" className="mt-1 w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white font-mono text-sm focus:outline-none focus:border-[#10B981]" />
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <label className="block text-xs text-white/60">Target Python file
+                      <input type="text" value={filePath} onChange={(e) => setFilePath(e.target.value)} placeholder="src/service.py" className="mt-1 w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white font-mono text-sm focus:outline-none focus:border-[#10B981]" />
+                    </label>
+                    <div className="flex items-end gap-3">
                   {agentStep === 6 || (agentStep === 0 && logs.length > 0) ? (
                     <button
                       onClick={resetEngine}
@@ -1226,14 +1097,21 @@ export default function BluefistEnterprise() {
                       <RotateCcw className="w-4 h-4" /> Reset
                     </button>
                   ) : (
-                    <button
+                      <button
                       onClick={triggerEngine}
                       disabled={isEngineActive}
                       className="flex items-center gap-2 bg-[#10B981] text-black px-6 py-3 rounded-xl font-bold hover:bg-[#059669] transition-all disabled:opacity-50 shadow-[0_0_20px_rgba(16,185,129,0.3)]"
                     >
-                      <Play className="w-4 h-4" /> Execute Target
+                      <Play className="w-4 h-4" /> {isEngineActive ? "Preparing…" : "Prepare proposal"}
                     </button>
                   )}
+                    </div>
+                  </div>
+                  <label className="block text-xs text-white/60">Error details or traceback
+                    <textarea value={errorTrace} onChange={(e) => setErrorTrace(e.target.value)} maxLength={20000} rows={5} placeholder="Paste the relevant error, logs, or steps to reproduce. Remove secrets and personal data first." className="mt-1 w-full resize-y bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white font-mono text-xs leading-relaxed focus:outline-none focus:border-[#10B981]" />
+                    <span className="mt-1 block text-right text-[10px] text-white/30">{errorTrace.length.toLocaleString()} / 20,000 characters</span>
+                  </label>
+                  <p className="rounded-lg border border-amber-400/20 bg-amber-400/5 px-3 py-2 text-[11px] leading-relaxed text-amber-100/70">Bluefist never executes generated code and does not run your repository’s tests. Production mode requires a locked-down Docker syntax check; local development falls back to a syntax parse if Docker is stopped. Review the full diff and run project tests before merging.</p>
                 </div>
 
                 <div className="flex-1 bg-[#050505] border border-white/10 rounded-2xl p-0 relative overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.5)] flex flex-col h-[550px]">
@@ -1241,7 +1119,7 @@ export default function BluefistEnterprise() {
                     <div className="w-3 h-3 rounded-full bg-[#FF5F56]" />
                     <div className="w-3 h-3 rounded-full bg-[#FFBD2E]" />
                     <div className="w-3 h-3 rounded-full bg-[#27C93F]" />
-                    <span className="text-xs ml-2 text-white/30 font-mono">root@bluefist-agent:~</span>
+                    <span className="text-xs ml-2 text-white/30 font-mono">bluefist · proposal stream</span>
                   </div>
                   <div className="p-6 overflow-y-auto font-mono text-[13px] leading-relaxed scrollbar-hide h-full">
                     {logs.length === 0 ? (
@@ -1276,12 +1154,12 @@ export default function BluefistEnterprise() {
                 </div>
               </div>
 
-              <div className="col-span-5 h-[620px]">
+              <div className="xl:col-span-5 min-h-[540px] xl:h-[620px]">
                 <div className="bg-[#0A0A0A] border border-white/10 p-6 rounded-2xl shadow-xl h-full flex flex-col relative overflow-hidden">
                   <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none" />
                   <h2 className="text-white font-semibold mb-6 flex items-center justify-between border-b border-white/10 pb-4 relative z-10">
                     <div className="flex items-center gap-2">
-                      <Cpu className="w-5 h-5 text-[#00F0FF]" /> Reflexive State Machine
+                      <Cpu className="w-5 h-5 text-[#00F0FF]" /> Patch workflow
                     </div>
                     <span className="text-xs font-mono bg-white/5 px-2 py-1 rounded text-white/50">Iter: {iterationCount}/3</span>
                   </h2>
@@ -1293,7 +1171,7 @@ export default function BluefistEnterprise() {
                       </div>
                       <div>
                         <h4 className={`text-sm font-bold ${agentStep === 1 ? "text-white" : agentStep > 1 ? "text-white/80" : "text-white/40"}`}>1. Codebase Scanning</h4>
-                        <p className="text-xs text-white/50 mt-1">Cloning target & extracting AST</p>
+                        <p className="text-xs text-white/50 mt-1">Loading the selected file from GitHub</p>
                       </div>
                     </div>
 
@@ -1303,8 +1181,8 @@ export default function BluefistEnterprise() {
                         <AlertTriangle className="w-5 h-5" />
                       </div>
                       <div>
-                        <h4 className={`text-sm font-bold ${agentStep === 2 ? "text-white" : agentStep > 2 ? "text-white/80" : "text-white/40"}`}>2. Context Slicing</h4>
-                        <p className="text-xs text-white/50 mt-1">Isolating runtime anomaly</p>
+                        <h4 className={`text-sm font-bold ${agentStep === 2 ? "text-white" : agentStep > 2 ? "text-white/80" : "text-white/40"}`}>2. Incident context</h4>
+                        <p className="text-xs text-white/50 mt-1">Using the traceback you supplied</p>
                       </div>
                     </div>
 
@@ -1314,9 +1192,9 @@ export default function BluefistEnterprise() {
                         <BrainCircuit className="w-5 h-5" />
                       </div>
                       <div>
-                        <h4 className={`text-sm font-bold ${agentStep === 3 ? "text-white" : agentStep > 3 ? "text-white/80" : "text-white/40"}`}>3. Swarm Synthesis</h4>
-                        <p className="text-xs text-white/50 mt-1">Gemini 2.5 generating patch</p>
-                        {isCriticActive && agentStep === 3 && (
+                        <h4 className={`text-sm font-bold ${agentStep === 3 ? "text-white" : agentStep > 3 ? "text-white/80" : "text-white/40"}`}>3. Patch proposal</h4>
+                        <p className="text-xs text-white/50 mt-1">A single Gemini model drafts the change</p>
+                        {isRetrying && agentStep === 3 && (
                           <span className="text-[10px] text-[#FF5F56] font-bold uppercase mt-1 block">↑ Debugging previous failure</span>
                         )}
                       </div>
@@ -1328,8 +1206,8 @@ export default function BluefistEnterprise() {
                         <Box className="w-5 h-5" />
                       </div>
                       <div>
-                        <h4 className={`text-sm font-bold ${agentStep === 4 ? "text-white" : agentStep > 4 ? "text-white/80" : "text-white/40"}`}>4. Isothermal Sandbox</h4>
-                        <p className="text-xs text-white/50 mt-1">Testing for Exit Code 0</p>
+                        <h4 className={`text-sm font-bold ${agentStep === 4 ? "text-white" : agentStep > 4 ? "text-white/80" : "text-white/40"}`}>4. Syntax validation</h4>
+                        <p className="text-xs text-white/50 mt-1">AST syntax check only · never executes code</p>
                       </div>
                     </div>
 
@@ -1338,8 +1216,8 @@ export default function BluefistEnterprise() {
                         <GitPullRequest className="w-5 h-5" />
                       </div>
                       <div>
-                        <h4 className={`text-sm font-bold ${agentStep === 5 ? "text-white" : agentStep > 5 ? "text-[#10B981]" : "text-white/40"}`}>5. Git Deployment</h4>
-                        <p className="text-xs text-white/50 mt-1">Pushing verified PR to remote</p>
+                        <h4 className={`text-sm font-bold ${agentStep === 5 ? "text-white" : agentStep > 5 ? "text-[#10B981]" : "text-white/40"}`}>5. Human review</h4>
+                        <p className="text-xs text-white/50 mt-1">Approval opens a GitHub pull request</p>
                       </div>
                     </div>
                   </div>
@@ -1358,29 +1236,8 @@ export default function BluefistEnterprise() {
             <RepoTab targets={targets} onRegister={handleRegisterTarget} onDeregister={handleDeregisterTarget} isRegistering={isRegistering} registerError={registerError} />
           )}
 
-          {/* ── PRICING TAB ── */}
-          {activeTab === "pricing" && (
-            <PricingTab />
-          )}
         </div>
       </main>
-
-      {/* Twilio WhatsApp toast */}
-      {showWhatsApp && (
-        <div className="fixed bottom-8 right-8 w-80 bg-[#128C7E] text-white p-4 rounded-2xl shadow-[0_20px_50px_rgba(37,211,102,0.3)] animate-fade-in-up flex gap-4 items-start border border-[#25D366]/30 z-50">
-          <div className="bg-white/20 p-2 rounded-full shrink-0">
-            <MessageSquare className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <p className="text-sm font-bold mb-1">Twilio System Alert</p>
-            <p className="text-xs leading-relaxed text-white/90">
-              🚨 Incident Resolved: Patch verified with <span className="font-bold text-[#25D366]">Exit Code 0</span> in sandbox.
-              <br /><br />
-              <span className="underline font-bold cursor-pointer hover:text-white/80 transition-colors">View Pull Request →</span>
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* Generic action toast */}
       {approvalToast && (
