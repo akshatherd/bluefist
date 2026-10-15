@@ -1,14 +1,14 @@
 # Bluefist
 
-Bluefist is a single-operator prototype for turning a reviewer-supplied incident report into a scoped Python patch proposal. It can monitor registered HTTP endpoints for availability anomalies. For code proposals, an operator selects a GitHub Python file and supplies the incident details; Bluefist loads that file, asks Gemini for a complete-file edit, performs a syntax-only check in a network-isolated Docker container, and waits for a human decision before opening a pull request.
+Bluefist is a single-operator prototype for turning a reviewer-supplied incident report into a scoped Python patch proposal. It can monitor registered HTTP endpoints for availability anomalies. For code proposals, an operator selects a GitHub Python file and supplies the incident details; Bluefist loads that file, asks Gemini for a complete-file edit, performs a syntax-only check in a network-isolated Docker container, and waits for explicit human approval before committing the patch directly to the repository's default branch.
 
-**It does not execute generated code, run the repository test suite, automatically repair an outage, or merge a pull request.** An HTTP health check reports availability only; it is not used to guess a code fix. Review and test every proposed change before merging.
+**Approval writes directly to the default branch.** Bluefist does not execute generated code, run the repository test suite, or automatically repair an outage. An HTTP health check reports availability only; it is not used to guess a code fix. Review every proposed diff carefully; run project tests before approving.
 
 ## Local setup
 
 Requirements: Python 3.11+, Node.js 20+, and Git. Docker Desktop is optional for local demo mode; production mode requires its Linux container engine.
 
-1. Copy `.env.example` to `.env`. Set `GEMINI_API_KEY` to enable patch proposals. For public repositories, GitHub reads can work without a token; set `GITHUB_TOKEN` to avoid low anonymous API limits. The token needs repository contents read and pull request/contents write permissions only if you approve PR creation.
+1. Copy `.env.example` to `.env`. Set `GEMINI_API_KEY` to enable patch proposals. Set `GITHUB_TOKEN` to a fine-grained token scoped to the target repository with **Contents: Read and write** so Bluefist can commit an approved patch. The token owner must have write access to that repository.
 2. Install and start the backend in one terminal:
 
    ```powershell
@@ -35,8 +35,7 @@ With Docker running, the syntax check uses `python:3.12-alpine` with no network,
 1. Enter a public or accessible GitHub repository URL and the exact `.py` file path. Bluefist does not scan the repository source or test suite to discover code bugs automatically.
 2. Paste a relevant traceback or concise reproduction details. Remove secrets and personal data first; the source file and incident context are sent to the configured Gemini API.
 3. Select **Prepare proposal**. Bluefist fetches that file, requests a patch, and checks syntax.
-4. Inspect the original and proposed code in the approval dialog. Reject it or approve it to create a GitHub branch and pull request. The approval dialog closes on success and provides a link to the pull request. Approval does not merge the PR; merge it on GitHub after review to update the default branch.
-5. Run the repository's own tests and review the full PR diff before merging.
+4. Inspect the original and proposed code in the approval dialog. Reject it or approve it to write a commit directly to the repository's default branch. The dialog closes on success and provides a link to the resulting commit. Verify that commit on GitHub and run the repository's own tests.
 
 ### Intentional demo bug
 
@@ -46,7 +45,7 @@ With Docker running, the syntax check uses `python:3.12-alpine` with no network,
 
 Set `BLUEFIST_ENV=production`, a strong `BLUEFIST_API_TOKEN`, `BLUEFIST_SANDBOX=docker`, and exact comma-separated `BLUEFIST_CORS_ORIGINS` values. The dashboard accepts the bearer token in the **API bearer token** field; it stays in memory for the open page and must be pasted again after a reload. Bind the API behind HTTPS and an authenticated reverse proxy. Never expose the development server directly to the public internet.
 
-This prototype keeps targets, telemetry, and approvals in process memory. Restarting the backend clears them, and it is designed for one API worker. Durable storage, job queues, team accounts/RBAC, audit retention, rate limits, webhook verification, and multi-worker deployment are not implemented; do not use it as a production incident-response service yet.
+This prototype commits approved code changes directly to the default branch, so only use it with repositories where that behavior is intended. It keeps targets, telemetry, and approvals in process memory. Restarting the backend clears them, and it is designed for one API worker. Durable storage, job queues, team accounts/RBAC, audit retention, rate limits, webhook verification, and multi-worker deployment are not implemented; do not use it as a production incident-response service yet.
 
 ## Checks
 

@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import {
   Terminal, GitBranch, Activity, ShieldAlert,
   LayoutDashboard, Cpu, Play, AlertTriangle, Search, BrainCircuit,
-  Box, GitPullRequest, RotateCcw, Flame, Wifi, WifiOff, Eye,
+  Box, RotateCcw, Flame, Wifi, WifiOff, Eye,
   CheckCircle2, XCircle, Plus, Trash2, Globe, Radio,
   ChevronDown, ChevronUp, Zap, Server, TrendingUp, Shield
 } from "lucide-react";
@@ -46,7 +46,8 @@ interface TelemetryEvent {
   full_patch?: string;
   original_code?: string;
   logs_tail?: string[];
-  pr_url?: string;
+  commit_url?: string;
+  commit_sha?: string;
   message?: string;
   reviewer_note?: string;
 }
@@ -90,7 +91,7 @@ function StatusBadge({ status }: { status: string }) {
     unreachable: { color: "text-[#FF5F56] border-[#FF5F56]/40 bg-[#FF5F56]/10", label: "UNREACHABLE" },
     unknown:     { color: "text-white/40 border-white/10 bg-white/5",            label: "UNKNOWN"     },
     pending:     { color: "text-[#8B5CF6] border-[#8B5CF6]/40 bg-[#8B5CF6]/10", label: "PENDING"     },
-    deployed:    { color: "text-[#10B981] border-[#10B981]/40 bg-[#10B981]/10", label: "DEPLOYED"    },
+    applied:     { color: "text-[#10B981] border-[#10B981]/40 bg-[#10B981]/10", label: "APPLIED"     },
     rejected:    { color: "text-[#FF5F56] border-[#FF5F56]/40 bg-[#FF5F56]/10", label: "REJECTED"    },
   };
   const cfg = map[status] ?? map.unknown;
@@ -230,6 +231,10 @@ function ApprovalModal({ approval, onDecide, isSubmitting }: ApprovalModalProps)
             )}
           </div>
 
+          <div className="rounded-xl border border-[#FFBD2E]/30 bg-[#FFBD2E]/5 px-4 py-3 text-xs text-[#F4D58D]">
+            Approval commits this patch directly to the repository's default branch. Bluefist checks syntax only; it does not run the repository's tests.
+          </div>
+
           <div>
             <label className="text-white/50 text-xs font-mono uppercase mb-2 block">
               Reviewer Note (optional)
@@ -257,11 +262,11 @@ function ApprovalModal({ approval, onDecide, isSubmitting }: ApprovalModalProps)
             className="flex-1 flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-[#10B981] text-black font-bold text-sm hover:bg-[#059669] transition-all disabled:opacity-40 shadow-[0_0_20px_rgba(16,185,129,0.4)]"
           >
             {isSubmitting ? <RotateCcw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-            Create GitHub PR
+            Apply Patch to GitHub
           </button>
         </div>
         <p className="mt-3 text-center text-[11px] text-white/40">
-          Approval creates a GitHub pull request. It does not merge the change into the repository.
+          Approval writes this reviewed patch directly to the repository's default branch.
         </p>
       </div>
     </div>
@@ -392,7 +397,7 @@ function TelemetryTab({ events, summary, wsConnected }: TelemetryTabProps) {
                   {ev.ping?.http_code  != null && ` HTTP ${ev.ping.http_code}`}
                   {ev.ping?.error      && ` ⚠ ${ev.ping.error}`}
                   {ev.approval_id      && ` · ${ev.approval_id}`}
-                  {ev.pr_url           && ` → ${ev.pr_url}`}
+                  {ev.commit_url       && ` → ${ev.commit_url}`}
                 </span>
               </div>
             ))
@@ -599,7 +604,7 @@ export default function BluefistConsole() {
   const [activeModal, setActiveModal]                 = useState<PendingApproval | null>(null);
   const [isSubmittingApproval, setIsSubmittingApproval] = useState(false);
   const [approvalToast, setApprovalToast]             = useState<string | null>(null);
-  const [approvalPrUrl, setApprovalPrUrl]             = useState<string | null>(null);
+  const [approvalCommitUrl, setApprovalCommitUrl]     = useState<string | null>(null);
 
   // ── Target registry ────────────────────────────────────────────────────────
   const [targets, setTargets]           = useState<MonitorTarget[]>([]);
@@ -695,7 +700,7 @@ export default function BluefistConsole() {
           full_patch:    msg.full_patch,
           original_code: msg.original_code,
           logs_tail:     msg.logs_tail,
-          pr_url:        msg.pr_url,
+          commit_url:    msg.commit_url,
         };
         setTelemetryEvents((prev) => [...prev, event].slice(-200));
 
@@ -737,12 +742,12 @@ export default function BluefistConsole() {
         if (msg.type === "deploy_complete") {
           setAgentStep(6);
           setActiveModal((current) => current?.approval_id === msg.approval_id ? null : current);
-          setApprovalToast(`✅ Patch deployed! PR: ${msg.pr_url ?? "—"}`);
-          setApprovalPrUrl(msg.pr_url ?? null);
+          setApprovalToast(`✅ Patch applied to the default branch. Commit: ${msg.commit_sha ?? "—"}`);
+          setApprovalCommitUrl(msg.commit_url ?? null);
           setPendingApprovals((prev) =>
             prev.map((p) =>
               p.approval_id === msg.approval_id
-                ? { ...p, status: "deployed" }
+                ? { ...p, status: "applied" }
                 : p
             )
           );
@@ -864,7 +869,7 @@ export default function BluefistConsole() {
     note: string
   ) => {
     setIsSubmittingApproval(true);
-    setApprovalPrUrl(null);
+    setApprovalCommitUrl(null);
     try {
       const res = await fetch(`${API_BASE}/approvals/decide`, {
         method: "POST",
@@ -882,13 +887,13 @@ export default function BluefistConsole() {
       const result = await res.json();
       setActiveModal(null);
       setPendingApprovals((prev) => prev.map((item) => item.approval_id === approvalId
-        ? { ...item, status: decision === "approve" ? "deployed" : "rejected" }
+        ? { ...item, status: decision === "approve" ? "applied" : "rejected" }
         : item));
-      if (decision === "approve" && result.pr_url) {
-        setApprovalPrUrl(result.pr_url);
-        setApprovalToast("✅ GitHub pull request created. Review it before merging.");
+      if (decision === "approve" && result.commit_url) {
+        setApprovalCommitUrl(result.commit_url);
+        setApprovalToast("✅ Reviewed patch committed directly to the default branch.");
       } else {
-        setApprovalToast("❌ Patch rejected. No GitHub pull request was created.");
+        setApprovalToast("❌ Patch rejected. No GitHub changes were made.");
       }
     } catch (err) {
       setApprovalToast(`⚠️ Approval failed: ${err instanceof Error ? err.message : String(err)}`);
@@ -1225,11 +1230,11 @@ export default function BluefistConsole() {
 
                     <div className="flex gap-4 relative mb-2">
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border z-10 transition-all duration-500 ${agentStep === 5 ? "bg-[#10B981]/20 border-[#10B981] text-[#10B981] shadow-[0_0_15px_#10B981] animate-pulse" : agentStep > 5 ? "bg-[#10B981] border-[#10B981] text-black shadow-[0_0_20px_#10B981]" : "bg-black border-white/10 text-white/30"}`}>
-                        <GitPullRequest className="w-5 h-5" />
+                        <GitBranch className="w-5 h-5" />
                       </div>
                       <div>
-                        <h4 className={`text-sm font-bold ${agentStep === 5 ? "text-white" : agentStep > 5 ? "text-[#10B981]" : "text-white/40"}`}>5. Human review</h4>
-                        <p className="text-xs text-white/50 mt-1">Approval opens a GitHub pull request</p>
+                        <h4 className={`text-sm font-bold ${agentStep === 5 ? "text-white" : agentStep > 5 ? "text-[#10B981]" : "text-white/40"}`}>5. Human approval</h4>
+                        <p className="text-xs text-white/50 mt-1">Approval commits the patch to the default branch</p>
                       </div>
                     </div>
                   </div>
@@ -1255,9 +1260,9 @@ export default function BluefistConsole() {
       {approvalToast && (
         <div className="fixed bottom-8 left-1/2 -translate-x-1/2 flex max-w-[calc(100vw-2rem)] flex-wrap items-center justify-center gap-x-3 gap-y-1 px-6 py-3 bg-[#0A0A0A] border border-white/20 rounded-2xl text-white text-sm font-mono shadow-2xl z-50 animate-fade-in-up text-center">
           <span>{approvalToast}</span>
-          {approvalPrUrl && (
-            <a href={approvalPrUrl} target="_blank" rel="noreferrer" className="text-[#10B981] underline underline-offset-4">
-              Open pull request ↗
+          {approvalCommitUrl && (
+            <a href={approvalCommitUrl} target="_blank" rel="noreferrer" className="text-[#10B981] underline underline-offset-4">
+              View GitHub commit ↗
             </a>
           )}
         </div>

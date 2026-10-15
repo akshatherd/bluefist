@@ -184,22 +184,34 @@ def test_approval_rejection_and_replay_are_recorded(monkeypatch):
     assert client.get("/telemetry?limit=501", headers=headers).status_code == 422
 
 
-def test_create_pull_request_uses_reviewed_branch_and_caveat():
+def test_approved_patch_commits_to_default_branch():
     class FakeRepo:
         default_branch = "main"
-        def get_branch(self, name): return SimpleNamespace(commit=SimpleNamespace(sha="abc123"))
-        def create_git_ref(self, **kwargs): self.ref = kwargs
-        def get_contents(self, path, ref): return SimpleNamespace(path=path, sha="file-sha")
-        def update_file(self, **kwargs): self.update = kwargs
-        def create_pull(self, **kwargs): self.pull = kwargs; return SimpleNamespace(html_url="https://github.com/acme/demo/pull/1")
+        def get_contents(self, path, ref):
+            assert ref == "main"
+            return SimpleNamespace(path=path, sha="file-sha")
+        def update_file(self, **kwargs):
+            self.update = kwargs
+            return {"commit": SimpleNamespace(html_url="https://github.com/acme/demo/commit/abc123", sha="abc123")}
 
     repo = FakeRepo()
-    source_file = SimpleNamespace(path="src/handler.py")
-    pr = routes.create_pull_request(repo, source_file, "def handle(): return 2\n")
-    assert pr.html_url.endswith("/pull/1")
-    assert repo.ref["ref"].startswith("refs/heads/bluefist-fix-")
-    assert repo.update["branch"] == repo.ref["ref"].split("/", 2)[-1]
-    assert "source was not executed" in repo.pull["body"]
+    source_file = SimpleNamespace(path="src/handler.py", sha="file-sha")
+    commit = routes.apply_approved_patch(repo, source_file, "def handle(): return 2\n")
+    assert commit.sha == "abc123"
+    assert repo.update["branch"] == "main"
+    assert repo.update["sha"] == "file-sha"
+    assert repo.update["content"] == "def handle(): return 2\n"
+
+
+def test_approved_patch_refuses_to_overwrite_a_file_changed_since_proposal():
+    class FakeRepo:
+        default_branch = "main"
+        def get_contents(self, path, ref): return SimpleNamespace(path=path, sha="new-sha")
+        def update_file(self, **kwargs): raise AssertionError("stale patch must not be applied")
+
+    source_file = SimpleNamespace(path="src/handler.py", sha="old-sha")
+    with pytest.raises(RuntimeError, match="changed after this proposal"):
+        routes.apply_approved_patch(FakeRepo(), source_file, "def handle(): return 2\n")
 
 
 @pytest.mark.asyncio
