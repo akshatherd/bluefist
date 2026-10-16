@@ -2,5 +2,5 @@
 
 
 def add_numbers(a: int, b: int) -> int:
-    """Add two numbers (intentionally returns one too many for demo testing)."""
+    """Add two numbers."""
     return a + b
